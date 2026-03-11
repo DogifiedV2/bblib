@@ -1,5 +1,5 @@
 modLoader = "javafml"
-loaderVersion = "[2,)"
+loaderVersion = "[40,)"
 #issueTrackerURL = ""
 license = "MIT"
 
@@ -14,25 +14,22 @@ description = '''
 #logoFile = ""
 
 [[dependencies.bblib]]
-modId = "neoforge"
-type = "required"
-versionRange = "[21,)"
+modId = "minecraft"
+mandatory = true
+versionRange = "[1.18.2,)"
 ordering = "NONE"
 side = "BOTH"
 
 [[dependencies.bblib]]
-modId = "minecraft"
-type = "required"
-versionRange = "[1.21.1,)"
+modId = "forge"
+mandatory = true
+versionRange = "[40,)"
 ordering = "NONE"
 side = "BOTH"
 
 [[dependencies.bblib]]
 modId = "architectury"
-type = "required"
-versionRange = "[13.0.8,)"
+mandatory = true
+versionRange = "[4.12.94,)"
 ordering = "AFTER"
 side = "BOTH"
-
-[[mixins]]
-config = "bblib.mixins.json"

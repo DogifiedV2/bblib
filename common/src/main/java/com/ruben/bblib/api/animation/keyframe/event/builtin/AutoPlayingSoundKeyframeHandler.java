@@ -6,7 +6,7 @@ import com.ruben.bblib.api.animation.keyframe.event.SoundKeyframeEvent;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.Minecraft;
-import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
@@ -29,7 +29,7 @@ public class AutoPlayingSoundKeyframeHandler<T extends BBAnimatable>
             return;
         }
 
-        SoundEvent soundEvent = BuiltInRegistries.SOUND_EVENT.get(soundId);
+        SoundEvent soundEvent = Registry.SOUND_EVENT.get(soundId);
         if (soundEvent == null) {
             return;
         }

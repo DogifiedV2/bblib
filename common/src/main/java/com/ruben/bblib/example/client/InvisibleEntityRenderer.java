@@ -11,7 +11,7 @@ import net.minecraft.world.entity.Entity;
 
 @Environment(EnvType.CLIENT)
 public class InvisibleEntityRenderer<T extends Entity> extends EntityRenderer<T> {
-    private static final ResourceLocation EMPTY_TEXTURE = ResourceLocation.withDefaultNamespace("textures/misc/white.png");
+    private static final ResourceLocation EMPTY_TEXTURE = new ResourceLocation("minecraft", "textures/misc/white.png");
 
     public InvisibleEntityRenderer(EntityRendererProvider.Context context) {
         super(context);

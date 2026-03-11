@@ -1,9 +1,12 @@
 package com.ruben.bblib.example;
 
 import net.minecraft.core.particles.DustParticleOptions;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientboundAddEntityPacket;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
@@ -12,7 +15,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import org.joml.Vector3f;
+import com.mojang.math.Vector3f;
 
 public class VinesProjectileEntity extends Entity {
     private static final int MAX_LIFE = 40;
@@ -43,7 +46,7 @@ public class VinesProjectileEntity extends Entity {
     }
 
     @Override
-    protected void defineSynchedData(SynchedEntityData.Builder builder) {
+    protected void defineSynchedData() {
     }
 
     @Override
@@ -77,7 +80,7 @@ public class VinesProjectileEntity extends Entity {
         }
         this.setPos(nextPosition.x, nextPosition.y, nextPosition.z);
 
-        if (this.level() instanceof ServerLevel serverLevel) {
+        if (this.level instanceof ServerLevel serverLevel) {
             if (this.tickCount % 2 == 0) {
                 RootsVfxEntity.spawnWalk(serverLevel,
                         this.getX() + Mth.nextDouble(this.random, -1.5, 1.5),
@@ -91,9 +94,9 @@ public class VinesProjectileEntity extends Entity {
                 return;
             }
         } else {
-            this.level().addParticle(new DustParticleOptions(new Vector3f(0.45f, 0.44f, 0.11f), 1.0f),
+            this.level.addParticle(new DustParticleOptions(new Vector3f(0.45f, 0.44f, 0.11f), 1.0f),
                     this.getX(), this.getY() + 0.1, this.getZ(), 0.0, 0.0, 0.0);
-            this.level().addParticle(new DustParticleOptions(new Vector3f(1.0f, 0.61f, 0.17f), 1.0f),
+            this.level.addParticle(new DustParticleOptions(new Vector3f(1.0f, 0.61f, 0.17f), 1.0f),
                     this.getX(), this.getY() + 0.2, this.getZ(), 0.0, 0.0, 0.0);
         }
     }
@@ -105,7 +108,7 @@ public class VinesProjectileEntity extends Entity {
 
     private LivingEntity findHitEntity() {
         AABB box = this.getBoundingBox().inflate(1.5, 1.5, 1.5);
-        for (LivingEntity living : this.level().getEntitiesOfClass(LivingEntity.class, box,
+        for (LivingEntity living : this.level.getEntitiesOfClass(LivingEntity.class, box,
                 living -> living.isAlive() && living.getId() != this.ownerId)) {
             return living;
         }
@@ -113,7 +116,7 @@ public class VinesProjectileEntity extends Entity {
     }
 
     private LivingEntity getTrackedTarget() {
-        Entity entity = this.level().getEntity(this.targetId);
+        Entity entity = this.level.getEntity(this.targetId);
         return entity instanceof LivingEntity living ? living : null;
     }
 
@@ -141,7 +144,7 @@ public class VinesProjectileEntity extends Entity {
 
         if (hitEntity != null && hitEntity.isAlive()) {
             RootsVfxEntity.spawnTrap(serverLevel, hitEntity);
-            hitEntity.hurt(serverLevel.damageSources().mobAttack(owner instanceof LivingEntity mob ? mob : null), damage);
+            hitEntity.hurt(getMobDamageSource(owner), damage);
             hitEntity.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 60, 11));
         } else {
             RootsVfxEntity.spawnTrap(serverLevel, this.getX(), this.getY(), this.getZ());
@@ -157,10 +160,19 @@ public class VinesProjectileEntity extends Entity {
             if (living == hitEntity) {
                 continue;
             }
-            living.hurt(serverLevel.damageSources().mobAttack(owner instanceof LivingEntity mob ? mob : null), damage);
+            living.hurt(getMobDamageSource(owner), damage);
             living.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 60, 2));
         }
 
         this.discard();
+    }
+
+    private static DamageSource getMobDamageSource(Entity owner) {
+        return owner instanceof LivingEntity livingOwner ? DamageSource.mobAttack(livingOwner) : DamageSource.GENERIC;
+    }
+
+    @Override
+    public Packet<?> getAddEntityPacket() {
+        return new ClientboundAddEntityPacket(this);
     }
 }

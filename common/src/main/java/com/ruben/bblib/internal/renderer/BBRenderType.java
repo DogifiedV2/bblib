@@ -16,7 +16,7 @@ public final class BBRenderType {
     }
 
     public static RenderType entityTranslucentEmissive(ResourceLocation texture) {
-        return RenderType.entityTranslucentEmissive(texture);
+        return RenderType.eyes(texture);
     }
 }
 

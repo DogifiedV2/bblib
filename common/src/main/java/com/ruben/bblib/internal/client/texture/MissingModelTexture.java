@@ -11,7 +11,7 @@ import net.minecraft.resources.ResourceLocation;
 @Environment(EnvType.CLIENT)
 public final class MissingModelTexture {
 
-    private static final ResourceLocation LOCATION = ResourceLocation.fromNamespaceAndPath(BBLibCommon.MOD_ID, "missing_model");
+    private static final ResourceLocation LOCATION = new ResourceLocation(BBLibCommon.MOD_ID, "missing_model");
     private static final int SIZE = 16;
     private static final int CELL_SIZE = 4;
     private static final int PINK = 0xFFFF00FF;

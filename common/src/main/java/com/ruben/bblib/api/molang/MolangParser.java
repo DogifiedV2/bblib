@@ -203,27 +203,27 @@ public final class MolangParser {
     private static MolangValue createFunction(String name, List<MolangValue> args) {
         return switch (name) {
             case "math.sin" -> {
-                MolangValue arg = args.isEmpty() ? ctx -> 0 : args.getFirst();
+                MolangValue arg = args.isEmpty() ? ctx -> 0 : args.get(0);
                 yield ctx -> Math.sin(Math.toRadians(arg.evaluate(ctx)));
             }
             case "math.cos" -> {
-                MolangValue arg = args.isEmpty() ? ctx -> 0 : args.getFirst();
+                MolangValue arg = args.isEmpty() ? ctx -> 0 : args.get(0);
                 yield ctx -> Math.cos(Math.toRadians(arg.evaluate(ctx)));
             }
             case "math.tan" -> {
-                MolangValue arg = args.isEmpty() ? ctx -> 0 : args.getFirst();
+                MolangValue arg = args.isEmpty() ? ctx -> 0 : args.get(0);
                 yield ctx -> Math.tan(Math.toRadians(arg.evaluate(ctx)));
             }
             case "math.asin" -> {
-                MolangValue arg = args.isEmpty() ? ctx -> 0 : args.getFirst();
+                MolangValue arg = args.isEmpty() ? ctx -> 0 : args.get(0);
                 yield ctx -> Math.toDegrees(Math.asin(arg.evaluate(ctx)));
             }
             case "math.acos" -> {
-                MolangValue arg = args.isEmpty() ? ctx -> 0 : args.getFirst();
+                MolangValue arg = args.isEmpty() ? ctx -> 0 : args.get(0);
                 yield ctx -> Math.toDegrees(Math.acos(arg.evaluate(ctx)));
             }
             case "math.atan" -> {
-                MolangValue arg = args.isEmpty() ? ctx -> 0 : args.getFirst();
+                MolangValue arg = args.isEmpty() ? ctx -> 0 : args.get(0);
                 yield ctx -> Math.toDegrees(Math.atan(arg.evaluate(ctx)));
             }
             case "math.atan2" -> {
@@ -232,27 +232,27 @@ public final class MolangParser {
                 yield ctx -> Math.toDegrees(Math.atan2(y.evaluate(ctx), x.evaluate(ctx)));
             }
             case "math.abs" -> {
-                MolangValue arg = args.isEmpty() ? ctx -> 0 : args.getFirst();
+                MolangValue arg = args.isEmpty() ? ctx -> 0 : args.get(0);
                 yield ctx -> Math.abs(arg.evaluate(ctx));
             }
             case "math.floor" -> {
-                MolangValue arg = args.isEmpty() ? ctx -> 0 : args.getFirst();
+                MolangValue arg = args.isEmpty() ? ctx -> 0 : args.get(0);
                 yield ctx -> Math.floor(arg.evaluate(ctx));
             }
             case "math.ceil" -> {
-                MolangValue arg = args.isEmpty() ? ctx -> 0 : args.getFirst();
+                MolangValue arg = args.isEmpty() ? ctx -> 0 : args.get(0);
                 yield ctx -> Math.ceil(arg.evaluate(ctx));
             }
             case "math.round" -> {
-                MolangValue arg = args.isEmpty() ? ctx -> 0 : args.getFirst();
+                MolangValue arg = args.isEmpty() ? ctx -> 0 : args.get(0);
                 yield ctx -> Math.round(arg.evaluate(ctx));
             }
             case "math.trunc" -> {
-                MolangValue arg = args.isEmpty() ? ctx -> 0 : args.getFirst();
+                MolangValue arg = args.isEmpty() ? ctx -> 0 : args.get(0);
                 yield ctx -> (int) arg.evaluate(ctx);
             }
             case "math.sqrt" -> {
-                MolangValue arg = args.isEmpty() ? ctx -> 0 : args.getFirst();
+                MolangValue arg = args.isEmpty() ? ctx -> 0 : args.get(0);
                 yield ctx -> Math.sqrt(arg.evaluate(ctx));
             }
             case "math.pow" -> {
@@ -261,15 +261,15 @@ public final class MolangParser {
                 yield ctx -> Math.pow(base.evaluate(ctx), exp.evaluate(ctx));
             }
             case "math.exp" -> {
-                MolangValue arg = args.isEmpty() ? ctx -> 0 : args.getFirst();
+                MolangValue arg = args.isEmpty() ? ctx -> 0 : args.get(0);
                 yield ctx -> Math.exp(arg.evaluate(ctx));
             }
             case "math.ln" -> {
-                MolangValue arg = args.isEmpty() ? ctx -> 0 : args.getFirst();
+                MolangValue arg = args.isEmpty() ? ctx -> 0 : args.get(0);
                 yield ctx -> Math.log(arg.evaluate(ctx));
             }
             case "math.log" -> {
-                MolangValue arg = args.isEmpty() ? ctx -> 0 : args.getFirst();
+                MolangValue arg = args.isEmpty() ? ctx -> 0 : args.get(0);
                 yield ctx -> Math.log10(arg.evaluate(ctx));
             }
             case "math.min" -> {
@@ -318,11 +318,11 @@ public final class MolangParser {
                 };
             }
             case "math.to_deg" -> {
-                MolangValue arg = args.isEmpty() ? ctx -> 0 : args.getFirst();
+                MolangValue arg = args.isEmpty() ? ctx -> 0 : args.get(0);
                 yield ctx -> Math.toDegrees(arg.evaluate(ctx));
             }
             case "math.to_rad" -> {
-                MolangValue arg = args.isEmpty() ? ctx -> 0 : args.getFirst();
+                MolangValue arg = args.isEmpty() ? ctx -> 0 : args.get(0);
                 yield ctx -> Math.toRadians(arg.evaluate(ctx));
             }
             default -> {

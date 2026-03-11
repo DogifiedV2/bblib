@@ -15,7 +15,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
-import org.joml.Vector3f;
+import com.mojang.math.Vector3f;
 
 public class PumpkinSeedProjectileEntity extends AbstractAnimatableEntity {
     private static final RawAnimation IDLE = RawAnimation.begin().thenLoop("idle");
@@ -43,7 +43,7 @@ public class PumpkinSeedProjectileEntity extends AbstractAnimatableEntity {
     }
 
     @Override
-    protected void defineSynchedData(SynchedEntityData.Builder builder) {
+    protected void defineSynchedData() {
     }
 
     @Override
@@ -54,10 +54,10 @@ public class PumpkinSeedProjectileEntity extends AbstractAnimatableEntity {
         Vec3 start = this.position();
         Vec3 end = start.add(deltaMovement);
 
-        if (this.level().isClientSide()) {
-            this.level().addParticle(new DustParticleOptions(new Vector3f(1.0f, 0.61f, 0.17f), 1.0f),
+        if (this.level.isClientSide) {
+            this.level.addParticle(new DustParticleOptions(new Vector3f(1.0f, 0.61f, 0.17f), 1.0f),
                     this.getX(), this.getY(), this.getZ(), 0.0, 0.0, 0.0);
-            this.level().addParticle(new DustParticleOptions(new Vector3f(0.17f, 0.85f, 0.52f), 1.0f),
+            this.level.addParticle(new DustParticleOptions(new Vector3f(0.17f, 0.85f, 0.52f), 1.0f),
                     this.getX(), this.getY(), this.getZ(), 0.0, 0.0, 0.0);
         } else {
             LivingEntity hitEntity = findHitEntity(end);
@@ -66,7 +66,7 @@ public class PumpkinSeedProjectileEntity extends AbstractAnimatableEntity {
                 return;
             }
 
-            BlockHitResult blockHitResult = this.level().clip(new ClipContext(start, end,
+            BlockHitResult blockHitResult = this.level.clip(new ClipContext(start, end,
                     ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, this));
             if (blockHitResult.getType() != BlockHitResult.Type.MISS) {
                 this.discard();
@@ -92,7 +92,7 @@ public class PumpkinSeedProjectileEntity extends AbstractAnimatableEntity {
         LivingEntity closest = null;
         double closestDistance = Double.MAX_VALUE;
 
-        for (LivingEntity living : this.level().getEntitiesOfClass(LivingEntity.class, box,
+        for (LivingEntity living : this.level.getEntitiesOfClass(LivingEntity.class, box,
                 living -> living.isAlive() && living.getId() != this.ownerId)) {
             double distance = living.distanceToSqr(end);
             if (distance < closestDistance) {
@@ -105,8 +105,8 @@ public class PumpkinSeedProjectileEntity extends AbstractAnimatableEntity {
     }
 
     private void onHitEntity(LivingEntity target) {
-        Entity owner = this.level().getEntity(this.ownerId);
-        if (owner instanceof PumpkinBossTestEntity boss && this.level() instanceof ServerLevel serverLevel) {
+        Entity owner = this.level.getEntity(this.ownerId);
+        if (owner instanceof PumpkinBossTestEntity boss && this.level instanceof ServerLevel serverLevel) {
             boss.applySeedCurse(serverLevel, target);
         }
         this.discard();

@@ -2,7 +2,7 @@ package com.ruben.bblib.api.renderer;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import com.mojang.math.Axis;
+import com.mojang.math.Vector3f;
 import com.ruben.bblib.api.BBLibApi;
 import com.ruben.bblib.internal.BBLibCommon;
 import com.ruben.bblib.api.animation.BBAnimation;
@@ -187,7 +187,7 @@ public class BBEntityRenderer<T extends Entity & BBAnimatable> extends EntityRen
         float averageLateralVelocity = (float) ((Math.abs(velocity.x) + Math.abs(velocity.z)) / 2.0);
 
         if (entity instanceof LivingEntity living) {
-            float limbSwingAmount = living.walkAnimation.speed(partialTick);
+            float limbSwingAmount = Mth.lerp(partialTick, living.animationSpeedOld, living.animationSpeed);
             return averageLateralVelocity >= getMotionAnimThreshold(entity) && limbSwingAmount != 0.0f;
         }
 
@@ -207,8 +207,8 @@ public class BBEntityRenderer<T extends Entity & BBAnimatable> extends EntityRen
             bodyRotation += (float) (Math.cos(entity.tickCount * 3.25d) * Math.PI * 0.4d);
         }
 
-        if (!entity.hasPose(Pose.SLEEPING)) {
-            poseStack.mulPose(Axis.YP.rotationDegrees(180.0f - bodyRotation));
+        if (entity.getPose() != Pose.SLEEPING) {
+            poseStack.mulPose(Vector3f.YP.rotationDegrees(180.0f - bodyRotation));
         }
 
         if (!(entity instanceof LivingEntity living)) {
@@ -217,18 +217,18 @@ public class BBEntityRenderer<T extends Entity & BBAnimatable> extends EntityRen
 
         if (living.deathTime > 0) {
             float deathProgress = (living.deathTime + partialTick - 1.0f) / 20.0f * 1.6f;
-            poseStack.mulPose(Axis.ZP.rotationDegrees(Math.min(Mth.sqrt(deathProgress), 1.0f) * 90.0f));
+            poseStack.mulPose(Vector3f.ZP.rotationDegrees(Math.min(Mth.sqrt(deathProgress), 1.0f) * 90.0f));
         } else if (living.isAutoSpinAttack()) {
-            poseStack.mulPose(Axis.XP.rotationDegrees(-90.0f - living.getXRot()));
-            poseStack.mulPose(Axis.YP.rotationDegrees((living.tickCount + partialTick) * -75.0f));
-        } else if (entity.hasPose(Pose.SLEEPING)) {
+            poseStack.mulPose(Vector3f.XP.rotationDegrees(-90.0f - living.getXRot()));
+            poseStack.mulPose(Vector3f.YP.rotationDegrees((living.tickCount + partialTick) * -75.0f));
+        } else if (entity.getPose() == Pose.SLEEPING) {
             Direction bedOrientation = living.getBedOrientation();
-            poseStack.mulPose(Axis.YP.rotationDegrees(bedOrientation != null ? sleepDirectionToRotation(bedOrientation) : bodyRotation));
-            poseStack.mulPose(Axis.ZP.rotationDegrees(90.0f));
-            poseStack.mulPose(Axis.YP.rotationDegrees(270.0f));
+            poseStack.mulPose(Vector3f.YP.rotationDegrees(bedOrientation != null ? sleepDirectionToRotation(bedOrientation) : bodyRotation));
+            poseStack.mulPose(Vector3f.ZP.rotationDegrees(90.0f));
+            poseStack.mulPose(Vector3f.YP.rotationDegrees(270.0f));
         } else if (LivingEntityRenderer.isEntityUpsideDown(living)) {
             poseStack.translate(0.0f, living.getBbHeight() + 0.1f, 0.0f);
-            poseStack.mulPose(Axis.ZP.rotationDegrees(180.0f));
+            poseStack.mulPose(Vector3f.ZP.rotationDegrees(180.0f));
         }
     }
 
@@ -288,7 +288,7 @@ public class BBEntityRenderer<T extends Entity & BBAnimatable> extends EntityRen
                 @Override public double getVerticalSpeed() {
                     return living.getDeltaMovement().y;
                 }
-                @Override public boolean isOnGround() { return living.onGround(); }
+                @Override public boolean isOnGround() { return living.isOnGround(); }
                 @Override public boolean isInWater() { return living.isInWater(); }
                 @Override public boolean isMoving() {
                     Vec3 velocity = living.getDeltaMovement();
@@ -446,9 +446,9 @@ public class BBEntityRenderer<T extends Entity & BBAnimatable> extends EntityRen
         poseStack.translate(origin.x() * PIXEL_SCALE, origin.y() * PIXEL_SCALE, origin.z() * PIXEL_SCALE);
 
         Vec3f rotation = cube.rotation();
-        if (rotation.z() != 0) poseStack.mulPose(Axis.ZP.rotationDegrees(rotation.z()));
-        if (rotation.y() != 0) poseStack.mulPose(Axis.YP.rotationDegrees(rotation.y()));
-        if (rotation.x() != 0) poseStack.mulPose(Axis.XP.rotationDegrees(rotation.x()));
+        if (rotation.z() != 0) poseStack.mulPose(Vector3f.ZP.rotationDegrees(rotation.z()));
+        if (rotation.y() != 0) poseStack.mulPose(Vector3f.YP.rotationDegrees(rotation.y()));
+        if (rotation.x() != 0) poseStack.mulPose(Vector3f.XP.rotationDegrees(rotation.x()));
 
         poseStack.translate(-origin.x() * PIXEL_SCALE, -origin.y() * PIXEL_SCALE, -origin.z() * PIXEL_SCALE);
 
@@ -620,9 +620,9 @@ public class BBEntityRenderer<T extends Entity & BBAnimatable> extends EntityRen
         poseStack.translate(origin.x() * PIXEL_SCALE, origin.y() * PIXEL_SCALE, origin.z() * PIXEL_SCALE);
 
         Vec3f rotation = cube.rotation();
-        if (rotation.z() != 0) poseStack.mulPose(Axis.ZP.rotationDegrees(rotation.z()));
-        if (rotation.y() != 0) poseStack.mulPose(Axis.YP.rotationDegrees(rotation.y()));
-        if (rotation.x() != 0) poseStack.mulPose(Axis.XP.rotationDegrees(rotation.x()));
+        if (rotation.z() != 0) poseStack.mulPose(Vector3f.ZP.rotationDegrees(rotation.z()));
+        if (rotation.y() != 0) poseStack.mulPose(Vector3f.YP.rotationDegrees(rotation.y()));
+        if (rotation.x() != 0) poseStack.mulPose(Vector3f.XP.rotationDegrees(rotation.x()));
 
         poseStack.translate(-origin.x() * PIXEL_SCALE, -origin.y() * PIXEL_SCALE, -origin.z() * PIXEL_SCALE);
 
@@ -830,9 +830,9 @@ public class BBEntityRenderer<T extends Entity & BBAnimatable> extends EntityRen
                 (origin.z() + position.z()) * PIXEL_SCALE
         );
 
-        if (rotation.z() != 0) poseStack.mulPose(Axis.ZP.rotationDegrees(rotation.z()));
-        if (rotation.y() != 0) poseStack.mulPose(Axis.YP.rotationDegrees(rotation.y()));
-        if (rotation.x() != 0) poseStack.mulPose(Axis.XP.rotationDegrees(rotation.x()));
+        if (rotation.z() != 0) poseStack.mulPose(Vector3f.ZP.rotationDegrees(rotation.z()));
+        if (rotation.y() != 0) poseStack.mulPose(Vector3f.YP.rotationDegrees(rotation.y()));
+        if (rotation.x() != 0) poseStack.mulPose(Vector3f.XP.rotationDegrees(rotation.x()));
 
         if (scale.x() != 1 || scale.y() != 1 || scale.z() != 1) {
             poseStack.scale(scale.x(), scale.y(), scale.z());
@@ -913,12 +913,13 @@ public class BBEntityRenderer<T extends Entity & BBAnimatable> extends EntityRen
     private void vertex(VertexConsumer vertexConsumer, PoseStack.Pose pose,
                          float x, float y, float z, float u, float v,
                          float nx, float ny, float nz, int packedLight, int packedOverlay) {
-        vertexConsumer.addVertex(pose, x, y, z)
-                .setColor(255, 255, 255, 255)
-                .setUv(u, v)
-                .setOverlay(packedOverlay)
-                .setLight(packedLight)
-                .setNormal(pose, nx, ny, nz);
+        vertexConsumer.vertex(pose.pose(), x, y, z)
+                .color(255, 255, 255, 255)
+                .uv(u, v)
+                .overlayCoords(packedOverlay)
+                .uv2(packedLight)
+                .normal(pose.normal(), nx, ny, nz)
+                .endVertex();
     }
 }
 

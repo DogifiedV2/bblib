@@ -6,9 +6,9 @@ import com.ruben.bblib.api.animation.keyframe.event.ParticleKeyframeEvent;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.Minecraft;
+import net.minecraft.core.Registry;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleType;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
@@ -48,7 +48,7 @@ public class AutoPlayingParticleKeyframeHandler<T extends BBAnimatable>
                 return null;
             }
 
-            ParticleType<?> particleType = BuiltInRegistries.PARTICLE_TYPE.get(location);
+            ParticleType<?> particleType = Registry.PARTICLE_TYPE.get(location);
             if (particleType instanceof ParticleOptions options) {
                 return options;
             }
@@ -64,9 +64,9 @@ public class AutoPlayingParticleKeyframeHandler<T extends BBAnimatable>
 
     private Vec3 getParticlePosition(Entity entity) {
         return new Vec3(
-                entity.getX() + (entity.getRandom().nextDouble() - 0.5) * 0.5,
-                entity.getY() + entity.getBbHeight() * 0.5 + (entity.getRandom().nextDouble() - 0.5) * 0.5,
-                entity.getZ() + (entity.getRandom().nextDouble() - 0.5) * 0.5
+                entity.getX() + (Math.random() - 0.5) * 0.5,
+                entity.getY() + entity.getBbHeight() * 0.5 + (Math.random() - 0.5) * 0.5,
+                entity.getZ() + (Math.random() - 0.5) * 0.5
         );
     }
 }

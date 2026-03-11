@@ -55,10 +55,10 @@ public class RootsVfxEntity extends AbstractAnimatableEntity {
     }
 
     @Override
-    protected void defineSynchedData(SynchedEntityData.Builder builder) {
-        builder.define(DATA_VARIANT, AnimationVariant.WALK.ordinal());
-        builder.define(DATA_LIFETIME, 14);
-        builder.define(DATA_ANCHOR_ID, -1);
+    protected void defineSynchedData() {
+        this.entityData.define(DATA_VARIANT, AnimationVariant.WALK.ordinal());
+        this.entityData.define(DATA_LIFETIME, 14);
+        this.entityData.define(DATA_ANCHOR_ID, -1);
     }
 
     @Override
@@ -66,11 +66,11 @@ public class RootsVfxEntity extends AbstractAnimatableEntity {
         super.tick();
         this.setDeltaMovement(0.0, 0.0, 0.0);
 
-        Entity anchor = this.level().getEntity(this.entityData.get(DATA_ANCHOR_ID));
+        Entity anchor = this.level.getEntity(this.entityData.get(DATA_ANCHOR_ID));
         if (anchor instanceof LivingEntity living && living.isAlive()) {
             this.setPos(living.getX(), living.getY() - 0.2, living.getZ());
 
-            if (!this.level().isClientSide() && getAnimationVariant() == AnimationVariant.TRAP) {
+            if (!this.level.isClientSide && getAnimationVariant() == AnimationVariant.TRAP) {
                 living.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 5, 11, false, false, true));
 
                 Vec3 movement = living.getDeltaMovement();

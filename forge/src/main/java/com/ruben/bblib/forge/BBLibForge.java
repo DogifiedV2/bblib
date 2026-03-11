@@ -1,4 +1,4 @@
-package com.ruben.bblib.neoforge;
+package com.ruben.bblib.forge;
 
 import com.ruben.bblib.internal.BBLibCommon;
 import com.ruben.bblib.internal.cache.BBModelReloadListener;
@@ -9,22 +9,28 @@ import com.ruben.bblib.example.client.PumpkinBossTestEntityRenderer;
 import com.ruben.bblib.example.client.PumpkinSeedProjectileRenderer;
 import com.ruben.bblib.example.client.RootsVfxEntityRenderer;
 import com.ruben.bblib.example.client.TestEntityRenderer;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.fml.common.Mod;
-import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
-import net.neoforged.neoforge.client.event.EntityRenderersEvent;
-import net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent;
+import dev.architectury.platform.forge.EventBuses;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.EntityRenderersEvent;
+import net.minecraftforge.client.event.RegisterClientReloadListenersEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
+import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 
 @Mod(BBLibCommon.MOD_ID)
-public final class BBLibNeoForge {
-    public BBLibNeoForge() {
+public final class BBLibForge {
+    public BBLibForge() {
+        EventBuses.registerModEventBus(BBLibCommon.MOD_ID, FMLJavaModLoadingContext.get().getModEventBus());
         BBLibCommon.init();
     }
 
     @EventBusSubscriber(modid = BBLibCommon.MOD_ID, value = Dist.CLIENT, bus = EventBusSubscriber.Bus.MOD)
     public static final class ClientEvents {
+        private ClientEvents() {
+        }
+
         @SubscribeEvent
         public static void onRegisterRenderers(EntityRenderersEvent.RegisterRenderers event) {
             event.registerEntityRenderer(TestEntities.TEST_ENTITY.get(), TestEntityRenderer::new);
@@ -35,14 +41,13 @@ public final class BBLibNeoForge {
         }
 
         @SubscribeEvent
-        public static void onRegisterClientReloadListeners(RegisterClientReloadListenersEvent event) {
-            event.registerReloadListener(BBModelReloadListener.INSTANCE);
-        }
-
-        @SubscribeEvent
         public static void onClientSetup(FMLClientSetupEvent event) {
             event.enqueueWork(BBLibClient::init);
         }
+
+        @SubscribeEvent
+        public static void onRegisterClientReloadListeners(RegisterClientReloadListenersEvent event) {
+            event.registerReloadListener(BBModelReloadListener.INSTANCE);
+        }
     }
 }
-

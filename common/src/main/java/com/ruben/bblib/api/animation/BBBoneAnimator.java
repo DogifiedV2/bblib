@@ -92,15 +92,15 @@ public class BBBoneAnimator {
         }
 
         if (keyframes.size() == 1) {
-            return keyframes.getFirst().evaluate(context);
+            return keyframes.get(0).evaluate(context);
         }
 
-        if (time <= keyframes.getFirst().time()) {
-            return keyframes.getFirst().evaluate(context);
+        if (time <= keyframes.get(0).time()) {
+            return keyframes.get(0).evaluate(context);
         }
 
-        if (time >= keyframes.getLast().time()) {
-            return keyframes.getLast().evaluate(context);
+        if (time >= keyframes.get(keyframes.size() - 1).time()) {
+            return keyframes.get(keyframes.size() - 1).evaluate(context);
         }
 
         BBKeyframe before = null;
@@ -115,7 +115,7 @@ public class BBBoneAnimator {
         }
 
         if (before == null || after == null) {
-            return keyframes.getFirst().evaluate(context);
+            return keyframes.get(0).evaluate(context);
         }
 
         float t = (time - before.time()) / (after.time() - before.time());

@@ -10,7 +10,6 @@ import net.fabricmc.api.Environment;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.PreparableReloadListener;
 import net.minecraft.server.packs.resources.PreparableReloadListener.PreparationBarrier;
-import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.util.profiling.ProfilerFiller;
 
@@ -23,7 +22,7 @@ import java.util.concurrent.Executor;
 
 @Environment(EnvType.CLIENT)
 public final class BBModelReloadListener implements PreparableReloadListener {
-    public static final ResourceLocation ID = ResourceLocation.fromNamespaceAndPath(BBLibCommon.MOD_ID, "bbmodels");
+    public static final ResourceLocation ID = new ResourceLocation(BBLibCommon.MOD_ID, "bbmodels");
     public static final BBModelReloadListener INSTANCE = new BBModelReloadListener();
 
     private static final String BBMODELS_DIRECTORY = "bbmodels";
@@ -49,19 +48,18 @@ public final class BBModelReloadListener implements PreparableReloadListener {
     private static Map<ResourceLocation, ModelData> loadAllModels(ResourceManager resourceManager) {
         Map<ResourceLocation, ModelData> models = new HashMap<>();
 
-        Map<ResourceLocation, Resource> resources = resourceManager.listResources(
-                BBMODELS_DIRECTORY, path -> path.getPath().endsWith(BBMODEL_EXTENSION));
+        var resources = resourceManager.listResources(
+                BBMODELS_DIRECTORY, path -> path.endsWith(BBMODEL_EXTENSION));
 
         BBLibCommon.LOGGER.info("BBModelReloadListener scanning '{}' directory, found {} resource(s)", BBMODELS_DIRECTORY, resources.size());
-        for (ResourceLocation key : resources.keySet()) {
+        for (ResourceLocation key : resources) {
             BBLibCommon.LOGGER.info("  Found resource: {}", key);
         }
 
-        for (Map.Entry<ResourceLocation, Resource> entry : resources.entrySet()) {
-            ResourceLocation fileLocation = entry.getKey();
+        for (ResourceLocation fileLocation : resources) {
             ResourceLocation modelId = extractModelId(fileLocation);
 
-            try (InputStream inputStream = entry.getValue().open()) {
+            try (InputStream inputStream = resourceManager.getResource(fileLocation).getInputStream()) {
                 String jsonContent = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
                 ParseResult result = BBModelParser.parse(modelId.toString(), jsonContent);
 
@@ -88,7 +86,7 @@ public final class BBModelReloadListener implements PreparableReloadListener {
         String modelName = path.substring(
                 BBMODELS_DIRECTORY.length() + 1,
                 path.length() - BBMODEL_EXTENSION.length());
-        return ResourceLocation.fromNamespaceAndPath(fileLocation.getNamespace(), modelName);
+        return new ResourceLocation(fileLocation.getNamespace(), modelName);
     }
 }
 

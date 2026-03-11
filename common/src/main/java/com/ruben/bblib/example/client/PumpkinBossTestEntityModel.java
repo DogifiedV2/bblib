@@ -11,7 +11,7 @@ public class PumpkinBossTestEntityModel extends BBModel<PumpkinBossTestEntity> {
 
     @Override
     public ResourceLocation getModelResource(PumpkinBossTestEntity entity) {
-        return ResourceLocation.fromNamespaceAndPath("bblib", "pumpkin_boss");
+        return new ResourceLocation("bblib", "pumpkin_boss");
     }
 }
 

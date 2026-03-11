@@ -4,7 +4,7 @@ plugins {
 
 architectury {
     platformSetupLoomIde()
-    fabric()
+    forge()
 }
 
 configurations {
@@ -12,27 +12,27 @@ configurations {
     shadowCommon
     compileClasspath.extendsFrom common
     runtimeClasspath.extendsFrom common
-    developmentFabric.extendsFrom common
+    developmentForge.extendsFrom common
 }
 
 dependencies {
-    modImplementation "net.fabricmc:fabric-loader:${rootProject.fabric_loader_version}"
-    modApi "net.fabricmc.fabric-api:fabric-api:${rootProject.fabric_api_version}"
-    modApi "dev.architectury:architectury-fabric:${rootProject.architectury_version}"
+    forge "net.minecraftforge:forge:${rootProject.forge_version}"
+    modApi "dev.architectury:architectury-forge:${rootProject.architectury_version}"
 
     common(project(path: ':common', configuration: 'namedElements')) { transitive false }
-    shadowCommon(project(path: ':common', configuration: 'transformProductionFabric')) { transitive false }
+    shadowCommon(project(path: ':common', configuration: 'transformProductionForge')) { transitive false }
 }
 
 processResources {
     inputs.property 'version', project.version
 
-    filesMatching('fabric.mod.json') {
+    filesMatching('META-INF/mods.toml') {
         expand version: project.version
     }
 }
 
 shadowJar {
+    exclude 'fabric.mod.json'
     exclude 'architectury.common.json'
 
     configurations = [project.configurations.shadowCommon]

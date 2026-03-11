@@ -18,7 +18,7 @@ public class TestEntityModel extends BBModel<TestEntity> {
 
     @Override
     public ResourceLocation getModelResource(TestEntity entity) {
-        return ResourceLocation.fromNamespaceAndPath("bblib", "test_entity");
+        return new ResourceLocation("bblib", "test_entity");
     }
 
     @Override

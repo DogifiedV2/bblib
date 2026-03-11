@@ -11,6 +11,6 @@ public class PumpkinSeedProjectileModel extends BBModel<PumpkinSeedProjectileEnt
 
     @Override
     public ResourceLocation getModelResource(PumpkinSeedProjectileEntity entity) {
-        return ResourceLocation.fromNamespaceAndPath("bblib", "pumpkin_seed");
+        return new ResourceLocation("bblib", "pumpkin_seed");
     }
 }

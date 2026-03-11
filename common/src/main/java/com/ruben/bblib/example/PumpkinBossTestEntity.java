@@ -35,7 +35,7 @@ import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
-import org.joml.Vector3f;
+import com.mojang.math.Vector3f;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -89,11 +89,11 @@ public class PumpkinBossTestEntity extends Monster implements BBEntityAnimatable
     }
 
     @Override
-    protected void defineSynchedData(SynchedEntityData.Builder builder) {
-        super.defineSynchedData(builder);
-        builder.define(DATA_IN_BATTLE, false);
-        builder.define(DATA_ATTACK_ANIMATION_TICKS, 0);
-        builder.define(DATA_ATTACK_VARIANT, AttackVariant.PRIMARY.ordinal());
+    protected void defineSynchedData() {
+        super.defineSynchedData();
+        this.entityData.define(DATA_IN_BATTLE, false);
+        this.entityData.define(DATA_ATTACK_ANIMATION_TICKS, 0);
+        this.entityData.define(DATA_ATTACK_VARIANT, AttackVariant.PRIMARY.ordinal());
     }
 
     public static AttributeSupplier.Builder createAttributes() {
@@ -122,7 +122,7 @@ public class PumpkinBossTestEntity extends Monster implements BBEntityAnimatable
     public void aiStep() {
         super.aiStep();
 
-        if (this.level().isClientSide()) {
+        if (this.level.isClientSide) {
             tickClientAnimationTriggers();
             return;
         }
@@ -239,7 +239,7 @@ public class PumpkinBossTestEntity extends Monster implements BBEntityAnimatable
     }
 
     private void tickSeedCurses() {
-        if (!(this.level() instanceof ServerLevel serverLevel) || this.activeSeedCurses.isEmpty()) {
+        if (!(this.level instanceof ServerLevel serverLevel) || this.activeSeedCurses.isEmpty()) {
             return;
         }
 
@@ -259,7 +259,7 @@ public class PumpkinBossTestEntity extends Monster implements BBEntityAnimatable
                 continue;
             }
 
-            DamageSource damageSource = this.damageSources().mobAttack(this);
+            DamageSource damageSource = DamageSource.mobAttack(this);
             float pulseDamage = (float) (target.getMaxHealth() * 0.04f);
             target.hurt(damageSource, pulseDamage);
 
@@ -386,7 +386,7 @@ public class PumpkinBossTestEntity extends Monster implements BBEntityAnimatable
     }
 
     private void handleSeedRelease() {
-        if (!(this.level() instanceof ServerLevel serverLevel)) {
+        if (!(this.level instanceof ServerLevel serverLevel)) {
             return;
         }
 
@@ -400,7 +400,7 @@ public class PumpkinBossTestEntity extends Monster implements BBEntityAnimatable
     }
 
     private void handleVinesRelease() {
-        if (!(this.level() instanceof ServerLevel serverLevel)) {
+        if (!(this.level instanceof ServerLevel serverLevel)) {
             return;
         }
 

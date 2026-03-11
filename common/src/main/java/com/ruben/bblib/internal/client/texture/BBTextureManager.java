@@ -33,12 +33,12 @@ public final class BBTextureManager {
     }
 
     public static ResourceLocation getDefaultTexture(String namespace, String modelPath) {
-        ResourceLocation modelId = ResourceLocation.fromNamespaceAndPath(namespace, modelPath);
+        ResourceLocation modelId = new ResourceLocation(namespace, modelPath);
         return getDefaultTexture(modelId);
     }
 
     public static ResourceLocation getDefaultTexture(ResourceLocation modelId) {
-        return ResourceLocation.fromNamespaceAndPath(BBLibCommon.MOD_ID, "dynamic/" + flattenKey(modelId) + "_0");
+        return new ResourceLocation(BBLibCommon.MOD_ID, "dynamic/" + flattenKey(modelId) + "_0");
     }
 
     public void clearTextures() {
@@ -52,7 +52,7 @@ public final class BBTextureManager {
         try {
             NativeImage image = NativeImage.read(new ByteArrayInputStream(textureData.imageData()));
             DynamicTexture dynamicTexture = new DynamicTexture(image);
-            ResourceLocation location = ResourceLocation.fromNamespaceAndPath(BBLibCommon.MOD_ID, "dynamic/" + key);
+            ResourceLocation location = new ResourceLocation(BBLibCommon.MOD_ID, "dynamic/" + key);
             Minecraft.getInstance().getTextureManager().register(location, dynamicTexture);
             return location;
         } catch (Exception e) {

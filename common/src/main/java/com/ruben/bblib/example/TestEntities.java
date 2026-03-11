@@ -4,14 +4,14 @@ import com.ruben.bblib.internal.BBLibCommon;
 import dev.architectury.registry.level.entity.EntityAttributeRegistry;
 import dev.architectury.registry.registries.DeferredRegister;
 import dev.architectury.registry.registries.RegistrySupplier;
-import net.minecraft.core.registries.Registries;
+import net.minecraft.core.Registry;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
 
 public final class TestEntities {
 
     private static final DeferredRegister<EntityType<?>> ENTITY_TYPES =
-            DeferredRegister.create(BBLibCommon.MOD_ID, Registries.ENTITY_TYPE);
+            DeferredRegister.create(BBLibCommon.MOD_ID, Registry.ENTITY_TYPE_REGISTRY);
 
     public static final RegistrySupplier<EntityType<TestEntity>> TEST_ENTITY =
             ENTITY_TYPES.register("test_entity", () ->
