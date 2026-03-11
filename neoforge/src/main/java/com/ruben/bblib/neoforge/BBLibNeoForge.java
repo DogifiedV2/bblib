@@ -4,7 +4,10 @@ import com.ruben.bblib.internal.BBLibCommon;
 import com.ruben.bblib.internal.cache.BBModelReloadListener;
 import com.ruben.bblib.internal.client.BBLibClient;
 import com.ruben.bblib.example.TestEntities;
+import com.ruben.bblib.example.client.InvisibleEntityRenderer;
 import com.ruben.bblib.example.client.PumpkinBossTestEntityRenderer;
+import com.ruben.bblib.example.client.PumpkinSeedProjectileRenderer;
+import com.ruben.bblib.example.client.RootsVfxEntityRenderer;
 import com.ruben.bblib.example.client.TestEntityRenderer;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -26,6 +29,9 @@ public final class BBLibNeoForge {
         public static void onRegisterRenderers(EntityRenderersEvent.RegisterRenderers event) {
             event.registerEntityRenderer(TestEntities.TEST_ENTITY.get(), TestEntityRenderer::new);
             event.registerEntityRenderer(TestEntities.PUMPKIN_BOSS_TEST.get(), PumpkinBossTestEntityRenderer::new);
+            event.registerEntityRenderer(TestEntities.PUMPKIN_SEED_PROJECTILE.get(), PumpkinSeedProjectileRenderer::new);
+            event.registerEntityRenderer(TestEntities.ROOTS_VFX.get(), RootsVfxEntityRenderer::new);
+            event.registerEntityRenderer(TestEntities.VINES_PROJECTILE.get(), InvisibleEntityRenderer::new);
         }
 
         @SubscribeEvent

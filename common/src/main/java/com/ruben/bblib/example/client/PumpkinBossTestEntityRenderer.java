@@ -14,4 +14,3 @@ public class PumpkinBossTestEntityRenderer extends BBEntityRenderer<PumpkinBossT
         this.shadowRadius = 1.2f;
     }
 }
-

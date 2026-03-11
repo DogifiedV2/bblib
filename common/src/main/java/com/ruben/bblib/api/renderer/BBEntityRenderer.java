@@ -4,6 +4,8 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import com.ruben.bblib.internal.BBLibCommon;
+import com.ruben.bblib.api.animation.BBAnimation;
+import com.ruben.bblib.api.animation.BBBoneAnimator;
 import com.ruben.bblib.api.animatable.AnimatableInstanceCache;
 import com.ruben.bblib.api.animatable.AnimationController;
 import com.ruben.bblib.api.animatable.AnimationState;
@@ -100,13 +102,10 @@ public class BBEntityRenderer<T extends Entity & BBAnimatable> extends EntityRen
 
         AnimationController<T> primaryController = getPrimaryController(manager);
 
-        if (modelData.freeFormat()) {
-            renderFreeFormat(entity, modelData, poseStack, bufferSource, packedLight, packedOverlay,
-                    primaryController, (float) animationState.animationTick, molangContext, currentTick);
-        } else {
-            renderModdedFormat(entity, modelData, poseStack, bufferSource, packedLight, packedOverlay,
-                    primaryController, (float) animationState.animationTick, molangContext, currentTick);
-        }
+        renderResolvedModel(entity, modelData, model.getModelResource(entity), poseStack, bufferSource, packedLight,
+                packedOverlay, primaryController, null, (float) animationState.animationTick, molangContext, currentTick);
+        renderPostModelExtras(entity, poseStack, bufferSource, packedLight, packedOverlay,
+                (float) animationState.animationTick, molangContext, currentTick);
 
         poseStack.popPose();
         super.render(entity, entityYaw, partialTick, poseStack, bufferSource, packedLight);
@@ -241,13 +240,49 @@ public class BBEntityRenderer<T extends Entity & BBAnimatable> extends EntityRen
         return EntityContext.EMPTY;
     }
 
+    protected void renderBoneAttachments(T entity, BoneData bone, ModelData modelData, PoseStack poseStack,
+                                         MultiBufferSource bufferSource, int packedLight, int packedOverlay,
+                                         float animationTime, MolangContext molangContext, double currentTick) {
+    }
+
+    protected void renderPostModelExtras(T entity, PoseStack poseStack, MultiBufferSource bufferSource,
+                                         int packedLight, int packedOverlay, float animationTime,
+                                         MolangContext molangContext, double currentTick) {
+    }
+
+    protected final void renderAdditionalModel(BBModel<T> additionalModel, T entity, PoseStack poseStack,
+                                               MultiBufferSource bufferSource, int packedLight, int packedOverlay,
+                                               @Nullable String animationName, float animationTime,
+                                               MolangContext molangContext, double currentTick) {
+        ModelData modelData = additionalModel.getModelData(entity);
+        if (modelData == null || modelData.textures().isEmpty()) {
+            return;
+        }
+
+        BBAnimation animation = animationName != null ? modelData.getAnimation(animationName) : null;
+        renderResolvedModel(entity, modelData, additionalModel.getModelResource(entity), poseStack, bufferSource,
+                packedLight, packedOverlay, null, animation, animationTime, molangContext, currentTick);
+    }
+
+    private void renderResolvedModel(T entity, ModelData modelData, ResourceLocation modelId, PoseStack poseStack,
+                                     MultiBufferSource bufferSource, int packedLight, int packedOverlay,
+                                     @Nullable AnimationController<T> controller, @Nullable BBAnimation animation,
+                                     float animationTime, MolangContext molangContext, double currentTick) {
+        if (modelData.freeFormat()) {
+            renderFreeFormat(entity, modelData, modelId, poseStack, bufferSource, packedLight, packedOverlay,
+                    controller, animation, animationTime, molangContext, currentTick);
+        } else {
+            renderModdedFormat(entity, modelData, modelId, poseStack, bufferSource, packedLight, packedOverlay,
+                    controller, animation, animationTime, molangContext, currentTick);
+        }
+    }
+
     // ===== Modded format rendering =====
 
-    private void renderModdedFormat(T entity, ModelData modelData, PoseStack poseStack,
-                                     MultiBufferSource bufferSource, int packedLight, int packedOverlay,
-                                     @Nullable AnimationController<T> controller, float animationTime,
-                                     MolangContext molangContext, double currentTick) {
-        ResourceLocation modelId = model.getModelResource(entity);
+    private void renderModdedFormat(T entity, ModelData modelData, ResourceLocation modelId, PoseStack poseStack,
+                                    MultiBufferSource bufferSource, int packedLight, int packedOverlay,
+                                    @Nullable AnimationController<T> controller, @Nullable BBAnimation animation,
+                                    float animationTime, MolangContext molangContext, double currentTick) {
         TextureData primaryTexture = modelData.textures().get(0);
         ResourceLocation textureLocation = BBTextureManager.getInstance()
                 .getOrCreateTexture(modelId, 0, primaryTexture);
@@ -258,8 +293,9 @@ public class BBEntityRenderer<T extends Entity & BBAnimatable> extends EntityRen
         float texHeight = modelData.textureHeight();
 
         for (BoneData bone : modelData.rootBones()) {
-            renderBoneModded(entity, bone, modelData.cubes(), poseStack, vertexConsumer, packedLight, packedOverlay,
-                    texWidth, texHeight, controller, animationTime, molangContext, currentTick);
+            renderBoneModded(entity, bone, modelData, modelId, poseStack, bufferSource, vertexConsumer,
+                    packedLight, packedOverlay, texWidth, texHeight, controller, animation,
+                    animationTime, molangContext, false, currentTick);
         }
 
         int glowmaskIndex = modelData.findGlowmaskTextureIndex(0);
@@ -275,24 +311,33 @@ public class BBEntityRenderer<T extends Entity & BBAnimatable> extends EntityRen
         VertexConsumer emissiveConsumer = bufferSource.getBuffer(emissiveRenderType);
 
         for (BoneData bone : modelData.rootBones()) {
-            renderBoneModded(entity, bone, modelData.cubes(), poseStack, emissiveConsumer,
+            renderBoneModded(entity, bone, modelData, modelId, poseStack, bufferSource, emissiveConsumer,
                     LightTexture.FULL_BRIGHT, packedOverlay,
-                    texWidth, texHeight, controller, animationTime, molangContext, currentTick);
+                    texWidth, texHeight, controller, animation,
+                    animationTime, molangContext, true, currentTick);
         }
     }
 
-    private void renderBoneModded(T entity, BoneData bone, Map<String, CubeData> cubes, PoseStack poseStack,
-                                   VertexConsumer vertexConsumer, int packedLight, int packedOverlay,
-                                   float texWidth, float texHeight,
-                                   @Nullable AnimationController<T> controller, float animationTime,
-                                   MolangContext molangContext, double currentTick) {
+    private void renderBoneModded(T entity, BoneData bone, ModelData modelData, ResourceLocation modelId,
+                                  PoseStack poseStack, MultiBufferSource bufferSource, VertexConsumer vertexConsumer,
+                                  int packedLight, int packedOverlay, float texWidth, float texHeight,
+                                  @Nullable AnimationController<T> controller, @Nullable BBAnimation animation,
+                                  float animationTime, MolangContext molangContext, boolean emissivePass,
+                                  double currentTick) {
         if (entity.isBoneHidden(bone.name())) {
             return;
         }
 
         poseStack.pushPose();
 
-        applyBoneTransform(bone, poseStack, controller, animationTime, molangContext, currentTick);
+        applyBoneTransform(bone, poseStack, controller, animation, animationTime, molangContext, currentTick);
+
+        if (!emissivePass) {
+            renderBoneAttachments(entity, bone, modelData, poseStack, bufferSource, packedLight, packedOverlay,
+                    animationTime, molangContext, currentTick);
+        }
+
+        Map<String, CubeData> cubes = modelData.cubes();
 
         for (String cubeUuid : bone.cubeUuids()) {
             CubeData cube = cubes.get(cubeUuid);
@@ -302,8 +347,9 @@ public class BBEntityRenderer<T extends Entity & BBAnimatable> extends EntityRen
         }
 
         for (BoneData child : bone.children()) {
-            renderBoneModded(entity, child, cubes, poseStack, vertexConsumer, packedLight, packedOverlay,
-                    texWidth, texHeight, controller, animationTime, molangContext, currentTick);
+            renderBoneModded(entity, child, modelData, modelId, poseStack, bufferSource, vertexConsumer,
+                    packedLight, packedOverlay, texWidth, texHeight, controller, animation,
+                    animationTime, molangContext, emissivePass, currentTick);
         }
 
         poseStack.popPose();
@@ -407,15 +453,13 @@ public class BBEntityRenderer<T extends Entity & BBAnimatable> extends EntityRen
 
     // ===== Free format rendering =====
 
-    private void renderFreeFormat(T entity, ModelData modelData, PoseStack poseStack,
-                                   MultiBufferSource bufferSource, int packedLight, int packedOverlay,
-                                   @Nullable AnimationController<T> controller, float animationTime,
-                                   MolangContext molangContext, double currentTick) {
-        ResourceLocation modelId = model.getModelResource(entity);
-
+    private void renderFreeFormat(T entity, ModelData modelData, ResourceLocation modelId, PoseStack poseStack,
+                                  MultiBufferSource bufferSource, int packedLight, int packedOverlay,
+                                  @Nullable AnimationController<T> controller, @Nullable BBAnimation animation,
+                                  float animationTime, MolangContext molangContext, double currentTick) {
         for (BoneData bone : modelData.rootBones()) {
             renderBoneFree(entity, bone, modelData, modelId, poseStack, bufferSource, packedLight, packedOverlay,
-                    controller, animationTime, molangContext, false, currentTick);
+                    controller, animation, animationTime, molangContext, false, currentTick);
         }
 
         int glowmaskIndex = modelData.findGlowmaskTextureIndex(0);
@@ -426,22 +470,28 @@ public class BBEntityRenderer<T extends Entity & BBAnimatable> extends EntityRen
         for (BoneData bone : modelData.rootBones()) {
             renderBoneFree(entity, bone, modelData, modelId, poseStack, bufferSource,
                     LightTexture.FULL_BRIGHT, packedOverlay,
-                    controller, animationTime, molangContext, true, currentTick);
+                    controller, animation, animationTime, molangContext, true, currentTick);
         }
     }
 
     private void renderBoneFree(T entity, BoneData bone, ModelData modelData, ResourceLocation modelId,
-                                 PoseStack poseStack, MultiBufferSource bufferSource,
-                                 int packedLight, int packedOverlay,
-                                 @Nullable AnimationController<T> controller, float animationTime,
-                                 MolangContext molangContext, boolean emissivePass, double currentTick) {
+                                PoseStack poseStack, MultiBufferSource bufferSource,
+                                int packedLight, int packedOverlay,
+                                @Nullable AnimationController<T> controller, @Nullable BBAnimation animation,
+                                float animationTime, MolangContext molangContext, boolean emissivePass,
+                                double currentTick) {
         if (entity.isBoneHidden(bone.name())) {
             return;
         }
 
         poseStack.pushPose();
 
-        applyBoneTransform(bone, poseStack, controller, animationTime, molangContext, currentTick);
+        applyBoneTransform(bone, poseStack, controller, animation, animationTime, molangContext, currentTick);
+
+        if (!emissivePass) {
+            renderBoneAttachments(entity, bone, modelData, poseStack, bufferSource, packedLight, packedOverlay,
+                    animationTime, molangContext, currentTick);
+        }
 
         Map<String, CubeData> cubes = modelData.cubes();
         List<TextureData> textures = modelData.textures();
@@ -458,7 +508,7 @@ public class BBEntityRenderer<T extends Entity & BBAnimatable> extends EntityRen
 
         for (BoneData child : bone.children()) {
             renderBoneFree(entity, child, modelData, modelId, poseStack, bufferSource, packedLight, packedOverlay,
-                    controller, animationTime, molangContext, emissivePass, currentTick);
+                    controller, animation, animationTime, molangContext, emissivePass, currentTick);
         }
 
         poseStack.popPose();
@@ -621,8 +671,8 @@ public class BBEntityRenderer<T extends Entity & BBAnimatable> extends EntityRen
     // ===== Shared utilities =====
 
     private void applyBoneTransform(BoneData bone, PoseStack poseStack,
-                                     @Nullable AnimationController<T> controller, float animationTime,
-                                     MolangContext molangContext, double currentTick) {
+                                    @Nullable AnimationController<T> controller, @Nullable BBAnimation animation,
+                                    float animationTime, MolangContext molangContext, double currentTick) {
         Vec3f origin = bone.origin();
         Vec3f rotation = bone.rotation();
         Vec3f position = Vec3f.ZERO;
@@ -644,6 +694,21 @@ public class BBEntityRenderer<T extends Entity & BBAnimatable> extends EntityRen
                 if (!result.isBlended()) {
                     controller.saveBoneSnapshot(bone.name(), result.rotation(), result.position(), result.scale());
                 }
+            }
+        } else if (animation != null) {
+            BBBoneAnimator boneAnimator = animation.getBoneAnimator(bone.name(), bone.uuid());
+            if (boneAnimator != null) {
+                Vec3f animRotation = boneAnimator.getRotationAt(animationTime, molangContext);
+                Vec3f animPosition = boneAnimator.getPositionAt(animationTime, molangContext);
+                Vec3f animScale = boneAnimator.getScaleAt(animationTime, molangContext);
+
+                rotation = new Vec3f(
+                        rotation.x() + (animRotation != null ? animRotation.x() : 0.0f),
+                        rotation.y() + (animRotation != null ? animRotation.y() : 0.0f),
+                        rotation.z() + (animRotation != null ? animRotation.z() : 0.0f)
+                );
+                position = animPosition != null ? animPosition : Vec3f.ZERO;
+                scale = animScale != null ? animScale : Vec3f.ONE;
             }
         }
 

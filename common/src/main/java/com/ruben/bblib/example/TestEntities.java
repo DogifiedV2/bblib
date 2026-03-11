@@ -25,6 +25,24 @@ public final class TestEntities {
                             .sized(1.6f, 4.8f)
                             .build("pumpkin_boss_test"));
 
+    public static final RegistrySupplier<EntityType<PumpkinSeedProjectileEntity>> PUMPKIN_SEED_PROJECTILE =
+            ENTITY_TYPES.register("pumpkin_seed_projectile", () ->
+                    EntityType.Builder.of(PumpkinSeedProjectileEntity::new, MobCategory.MISC)
+                            .sized(0.6f, 0.6f)
+                            .build("pumpkin_seed_projectile"));
+
+    public static final RegistrySupplier<EntityType<RootsVfxEntity>> ROOTS_VFX =
+            ENTITY_TYPES.register("roots_vfx", () ->
+                    EntityType.Builder.of(RootsVfxEntity::new, MobCategory.MISC)
+                            .sized(2.5f, 2.5f)
+                            .build("roots_vfx"));
+
+    public static final RegistrySupplier<EntityType<VinesProjectileEntity>> VINES_PROJECTILE =
+            ENTITY_TYPES.register("vines_projectile", () ->
+                    EntityType.Builder.of(VinesProjectileEntity::new, MobCategory.MISC)
+                            .sized(0.25f, 0.25f)
+                            .build("vines_projectile"));
+
     public static void register() {
         ENTITY_TYPES.register();
         EntityAttributeRegistry.register(TEST_ENTITY, TestEntity::createAttributes);
