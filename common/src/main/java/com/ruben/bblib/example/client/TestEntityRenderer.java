@@ -11,6 +11,7 @@ public class TestEntityRenderer extends BBEntityRenderer<TestEntity> {
 
     public TestEntityRenderer(EntityRendererProvider.Context context) {
         super(context, new TestEntityModel());
+        addRenderLayer(new TestEntityHeadLayer(this));
     }
 }
 

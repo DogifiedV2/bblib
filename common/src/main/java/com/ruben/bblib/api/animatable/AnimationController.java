@@ -2,13 +2,24 @@ package com.ruben.bblib.api.animatable;
 
 import com.ruben.bblib.api.animation.BBAnimation;
 import com.ruben.bblib.api.animation.BBBoneAnimator;
+import com.ruben.bblib.api.animation.keyframe.event.CustomInstructionKeyframeEvent;
+import com.ruben.bblib.api.animation.keyframe.event.ParticleKeyframeEvent;
+import com.ruben.bblib.api.animation.keyframe.event.SoundKeyframeEvent;
+import com.ruben.bblib.api.animation.keyframe.event.data.CustomInstructionKeyframeData;
+import com.ruben.bblib.api.animation.keyframe.event.data.KeyframeData;
+import com.ruben.bblib.api.animation.keyframe.event.data.ParticleKeyframeData;
+import com.ruben.bblib.api.animation.keyframe.event.data.SoundKeyframeData;
 import com.ruben.bblib.api.model.data.ModelData;
 import com.ruben.bblib.api.model.data.Vec3f;
 import com.ruben.bblib.api.molang.MolangContext;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 public class AnimationController<T extends BBAnimatable> {
 
@@ -21,11 +32,17 @@ public class AnimationController<T extends BBAnimatable> {
     private final String name;
     private final int transitionLengthTicks;
     private final AnimationPredicate<T> predicate;
+    private final Map<String, RawAnimation> triggerableAnimations = new HashMap<>();
+    private final Set<KeyframeData> executedKeyframes = new HashSet<>();
 
     private RawAnimation currentRawAnimation;
+    private RawAnimation triggeredAnimation;
+    private String triggeredAnimationName;
     private int currentStageIndex;
     private BBAnimation currentAnimation;
     private boolean animationRunning;
+    private boolean animationFinished;
+    private boolean forceAnimationReset;
 
     private double animationStartTick;
     private double transitionStartTick;
@@ -34,6 +51,11 @@ public class AnimationController<T extends BBAnimatable> {
 
     private float animationSpeed = 1.0f;
     private float currentAnimationTick;
+    private float lastEventAnimationTick = -1.0f;
+
+    private SoundKeyframeHandler<T> soundKeyframeHandler;
+    private ParticleKeyframeHandler<T> particleKeyframeHandler;
+    private CustomInstructionKeyframeHandler<T> customInstructionKeyframeHandler;
 
     public AnimationController(T animatable, String name, int transitionLengthTicks, AnimationPredicate<T> predicate) {
         this.animatable = animatable;
@@ -54,8 +76,38 @@ public class AnimationController<T extends BBAnimatable> {
         return currentAnimation;
     }
 
+    @Nullable
+    public RawAnimation getTriggeredAnimation() {
+        return triggeredAnimation;
+    }
+
+    @Nullable
+    public String getTriggeredAnimationName() {
+        return triggeredAnimationName;
+    }
+
+    public boolean isPlayingTriggeredAnimation() {
+        return triggeredAnimation != null && animationRunning;
+    }
+
     public float getAnimationSpeed() {
         return animationSpeed;
+    }
+
+    public AnimationController<T> setSoundKeyframeHandler(SoundKeyframeHandler<T> soundKeyframeHandler) {
+        this.soundKeyframeHandler = soundKeyframeHandler;
+        return this;
+    }
+
+    public AnimationController<T> setParticleKeyframeHandler(ParticleKeyframeHandler<T> particleKeyframeHandler) {
+        this.particleKeyframeHandler = particleKeyframeHandler;
+        return this;
+    }
+
+    public AnimationController<T> setCustomInstructionKeyframeHandler(
+            CustomInstructionKeyframeHandler<T> customInstructionKeyframeHandler) {
+        this.customInstructionKeyframeHandler = customInstructionKeyframeHandler;
+        return this;
     }
 
     public void setAnimationSpeed(float speed) {
@@ -64,10 +116,11 @@ public class AnimationController<T extends BBAnimatable> {
 
     public void setAnimation(RawAnimation animation) {
         if (animation == null || animation.getAnimationStages().isEmpty()) {
+            stop();
             return;
         }
 
-        if (animation.equals(currentRawAnimation)) {
+        if (!forceAnimationReset && animation.equals(currentRawAnimation) && !animationFinished) {
             return;
         }
 
@@ -79,6 +132,9 @@ public class AnimationController<T extends BBAnimatable> {
         currentStageIndex = 0;
         currentAnimation = null;
         animationRunning = true;
+        animationFinished = false;
+        forceAnimationReset = false;
+        resetExecutedKeyframes();
     }
 
     public void forceAnimationReset() {
@@ -89,21 +145,77 @@ public class AnimationController<T extends BBAnimatable> {
         animationStartTick = 0;
         isTransitioning = false;
         currentAnimationTick = 0;
+        animationFinished = false;
+        forceAnimationReset = false;
         boneSnapshots.clear();
+        resetExecutedKeyframes();
+    }
+
+    public AnimationController<T> triggerable(String animationName, RawAnimation animation) {
+        triggerableAnimations.put(animationName, animation);
+        return this;
+    }
+
+    public boolean triggerAnimation(String animationName) {
+        RawAnimation animation = triggerableAnimations.get(animationName);
+        if (animation == null) {
+            return false;
+        }
+
+        triggeredAnimation = animation;
+        triggeredAnimationName = animationName;
+        forceAnimationReset = true;
+        setAnimation(animation);
+        return true;
+    }
+
+    public boolean stopTriggeredAnimation() {
+        if (triggeredAnimation == null) {
+            return false;
+        }
+
+        clearTriggeredAnimation();
+        forceAnimationReset();
+        return true;
+    }
+
+    public boolean stopTriggeredAnimation(String animationName) {
+        if (!Objects.equals(triggeredAnimationName, animationName)) {
+            return false;
+        }
+        return stopTriggeredAnimation();
+    }
+
+    public boolean resetTriggeredAnimation() {
+        if (triggeredAnimationName == null) {
+            return false;
+        }
+        return triggerAnimation(triggeredAnimationName);
+    }
+
+    public boolean resetTriggeredAnimation(String animationName) {
+        if (!Objects.equals(triggeredAnimationName, animationName)) {
+            return false;
+        }
+        return triggerAnimation(animationName);
     }
 
     public void process(AnimationState<T> state, ModelData modelData, double currentTick) {
         state.withController(this);
 
-        PlayState playState = predicate.handle(state);
+        PlayState playState;
+        if (triggeredAnimation != null) {
+            setAnimation(triggeredAnimation);
+            playState = PlayState.CONTINUE;
+        } else {
+            playState = predicate.handle(state);
+        }
 
         if (playState == PlayState.STOP) {
             if (animationRunning) {
                 captureCurrentBoneSnapshots();
-                animationRunning = false;
-                currentAnimation = null;
             }
-            currentAnimationTick = 0;
+            stop();
             return;
         }
 
@@ -130,6 +242,7 @@ public class AnimationController<T extends BBAnimatable> {
             }
             currentAnimation = targetAnimation;
             animationStartTick = currentTick;
+            resetExecutedKeyframes();
         }
 
         float animationLength = currentAnimation.getLength();
@@ -150,11 +263,14 @@ public class AnimationController<T extends BBAnimatable> {
                     if (currentStageIndex + 1 < stages.size()) {
                         captureCurrentBoneSnapshots();
                         currentStageIndex++;
+                        resetExecutedKeyframes();
                         animationStartTick = currentTick;
                         state.animationTick = 0;
+                        currentAnimationTick = 0;
+                        return;
                     } else {
                         animationRunning = false;
-                        currentAnimation = null;
+                        animationFinished = true;
                         state.animationTick = animationLength;
                     }
                 } else {
@@ -164,6 +280,16 @@ public class AnimationController<T extends BBAnimatable> {
         }
 
         currentAnimationTick = (float) state.animationTick;
+        dispatchKeyframeEvents(currentAnimationTick);
+
+        if (animationFinished) {
+            currentAnimation = null;
+        }
+
+        if (triggeredAnimation != null && animationFinished) {
+            clearTriggeredAnimation();
+            forceAnimationReset();
+        }
     }
 
     public BoneAnimationResult computeBoneAnimation(String boneName, String boneUuid,
@@ -222,6 +348,71 @@ public class AnimationController<T extends BBAnimatable> {
     private void captureCurrentBoneSnapshots() {
         // Snapshots are captured by the renderer when it processes bones
         // This is a marker that transition should happen
+    }
+
+    private void stop() {
+        animationRunning = false;
+        currentAnimation = null;
+        currentAnimationTick = 0;
+        animationFinished = false;
+        resetExecutedKeyframes();
+    }
+
+    private void clearTriggeredAnimation() {
+        triggeredAnimation = null;
+        triggeredAnimationName = null;
+    }
+
+    private void dispatchKeyframeEvents(float animationTime) {
+        if (currentAnimation == null) {
+            return;
+        }
+
+        if (lastEventAnimationTick >= 0 && animationTime < lastEventAnimationTick) {
+            resetExecutedKeyframes();
+        }
+
+        BBAnimation.Keyframes keyframes = currentAnimation.getKeyframes();
+
+        for (SoundKeyframeData keyframeData : keyframes.sounds()) {
+            if (animationTime >= keyframeData.startTime() && executedKeyframes.add(keyframeData) && soundKeyframeHandler != null) {
+                soundKeyframeHandler.handle(new SoundKeyframeEvent<>(animatable, animationTime, this, keyframeData));
+            }
+        }
+
+        for (ParticleKeyframeData keyframeData : keyframes.particles()) {
+            if (animationTime >= keyframeData.startTime() && executedKeyframes.add(keyframeData) && particleKeyframeHandler != null) {
+                particleKeyframeHandler.handle(new ParticleKeyframeEvent<>(animatable, animationTime, this, keyframeData));
+            }
+        }
+
+        for (CustomInstructionKeyframeData keyframeData : keyframes.customInstructions()) {
+            if (animationTime >= keyframeData.startTime() && executedKeyframes.add(keyframeData) && customInstructionKeyframeHandler != null) {
+                customInstructionKeyframeHandler.handle(new CustomInstructionKeyframeEvent<>(animatable, animationTime, this, keyframeData));
+            }
+        }
+
+        lastEventAnimationTick = animationTime;
+    }
+
+    private void resetExecutedKeyframes() {
+        executedKeyframes.clear();
+        lastEventAnimationTick = -1.0f;
+    }
+
+    @FunctionalInterface
+    public interface SoundKeyframeHandler<A extends BBAnimatable> {
+        void handle(SoundKeyframeEvent<A> event);
+    }
+
+    @FunctionalInterface
+    public interface ParticleKeyframeHandler<A extends BBAnimatable> {
+        void handle(ParticleKeyframeEvent<A> event);
+    }
+
+    @FunctionalInterface
+    public interface CustomInstructionKeyframeHandler<A extends BBAnimatable> {
+        void handle(CustomInstructionKeyframeEvent<A> event);
     }
 
     public void saveBoneSnapshot(String boneName, Vec3f rotation, Vec3f position, Vec3f scale) {

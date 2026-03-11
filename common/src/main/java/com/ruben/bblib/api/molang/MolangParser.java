@@ -333,9 +333,9 @@ public final class MolangParser {
     }
 
     private static MolangValue parseVariable(String name) {
-        String normalized = name.replace("query.", "q.");
+        String normalized = MolangContext.normalizeQueryName(name);
 
-        return switch (normalized) {
+        MolangValue builtin = switch (normalized) {
             case "q.anim_time" -> MolangContext::getAnimTime;
             case "q.life_time" -> ctx -> ctx.getAnimTime();
             case "q.frame_alpha" -> MolangContext::getPartialTick;
@@ -350,10 +350,21 @@ public final class MolangParser {
             case "q.death_time" -> MolangContext::getDeathTime;
             case "pi" -> ctx -> Math.PI;
             case "e" -> ctx -> Math.E;
-            default -> {
-                LOGGER.fine("Unknown Molang variable: " + name);
-                yield ctx -> 0;
+            default -> null;
+        };
+
+        return ctx -> {
+            MolangValue override = ctx.getQueryValue(normalized);
+            if (override != null) {
+                return override.evaluate(ctx);
             }
+
+            if (builtin != null) {
+                return builtin.evaluate(ctx);
+            }
+
+            LOGGER.fine("Unknown Molang variable: " + name);
+            return 0;
         };
     }
 

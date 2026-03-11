@@ -1,10 +1,17 @@
 package com.ruben.bblib.api.animatable;
 
+import com.ruben.bblib.api.animatable.data.DataTicket;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+
 public class AnimationState<T extends BBAnimatable> {
 
     private final T animatable;
     private final float partialTick;
     private final boolean isMoving;
+    private final Map<DataTicket<?>, Object> extraData = new HashMap<>();
     private AnimationController<T> controller;
     public double animationTick;
 
@@ -39,6 +46,24 @@ public class AnimationState<T extends BBAnimatable> {
         return this;
     }
 
+    public Map<DataTicket<?>, ?> getExtraData() {
+        return extraData;
+    }
+
+    public <D> D getData(DataTicket<D> dataTicket) {
+        return dataTicket.getData(extraData);
+    }
+
+    public <D> AnimationState<T> setData(DataTicket<D> dataTicket, D data) {
+        extraData.put(dataTicket, data);
+        return this;
+    }
+
+    public AnimationState<T> putAllData(Map<? extends DataTicket<?>, ?> data) {
+        extraData.putAll(data);
+        return this;
+    }
+
     public void setAnimation(RawAnimation animation) {
         getController().setAnimation(animation);
     }
@@ -49,11 +74,15 @@ public class AnimationState<T extends BBAnimatable> {
     }
 
     public boolean isCurrentAnimation(RawAnimation animation) {
-        return java.util.Objects.equals(getController().getCurrentRawAnimation(), animation);
+        return Objects.equals(getController().getCurrentRawAnimation(), animation);
     }
 
     public void resetCurrentAnimation() {
         getController().forceAnimationReset();
+    }
+
+    public void setControllerSpeed(float speed) {
+        getController().setAnimationSpeed(speed);
     }
 }
 

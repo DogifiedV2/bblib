@@ -1,6 +1,8 @@
 package com.ruben.bblib.example;
 
 import com.ruben.bblib.api.BBLibApi;
+import com.ruben.bblib.api.animation.keyframe.event.builtin.AutoPlayingParticleKeyframeHandler;
+import com.ruben.bblib.api.animation.keyframe.event.builtin.AutoPlayingSoundKeyframeHandler;
 import com.ruben.bblib.api.animatable.AnimatableInstanceCache;
 import com.ruben.bblib.api.animatable.AnimationController;
 import com.ruben.bblib.api.animatable.BBEntityAnimatable;
@@ -79,6 +81,7 @@ public class PumpkinBossTestEntity extends Monster implements BBEntityAnimatable
     private int seedAttackCooldown;
     private int vinesAttackCooldown;
     private int specialAttackCheckCooldown = SPECIAL_ATTACK_CHECK_INTERVAL;
+    private int previousClientAttackAnimationTicks;
 
     protected PumpkinBossTestEntity(EntityType<? extends Monster> entityType, Level level) {
         super(entityType, level);
@@ -120,6 +123,7 @@ public class PumpkinBossTestEntity extends Monster implements BBEntityAnimatable
         super.aiStep();
 
         if (this.level().isClientSide()) {
+            tickClientAnimationTriggers();
             return;
         }
 
@@ -210,7 +214,15 @@ public class PumpkinBossTestEntity extends Monster implements BBEntityAnimatable
             }
 
             return state.setAndContinue(nextAnimation);
-        }));
+        })
+                .triggerable("attack_primary", ATTACK)
+                .triggerable("attack_secondary", ATTACK_ALT)
+                .triggerable("attack_seed", SEED_ATTACK)
+                .triggerable("attack_vines", VINES_ATTACK)
+                .setSoundKeyframeHandler(new AutoPlayingSoundKeyframeHandler<>())
+                .setParticleKeyframeHandler(new AutoPlayingParticleKeyframeHandler<>())
+                .setCustomInstructionKeyframeHandler(event -> {
+                }));
     }
 
     @Override
@@ -290,6 +302,24 @@ public class PumpkinBossTestEntity extends Monster implements BBEntityAnimatable
         } else {
             startVinesAttack();
         }
+    }
+
+    private void tickClientAnimationTriggers() {
+        int attackAnimationTicks = this.entityData.get(DATA_ATTACK_ANIMATION_TICKS);
+        if (attackAnimationTicks > 0 && this.previousClientAttackAnimationTicks <= 0) {
+            this.triggerAnimation("main", getAttackTriggerName(AttackVariant.fromOrdinal(this.entityData.get(DATA_ATTACK_VARIANT))));
+        }
+
+        this.previousClientAttackAnimationTicks = attackAnimationTicks;
+    }
+
+    private String getAttackTriggerName(AttackVariant attackVariant) {
+        return switch (attackVariant) {
+            case PRIMARY -> "attack_primary";
+            case SECONDARY -> "attack_secondary";
+            case SEED -> "attack_seed";
+            case VINES -> "attack_vines";
+        };
     }
 
     private boolean canStartSeedAttack() {

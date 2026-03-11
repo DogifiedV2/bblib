@@ -3,6 +3,10 @@ package com.ruben.bblib.api.animation;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
+import com.ruben.bblib.api.animation.keyframe.event.data.CustomInstructionKeyframeData;
+import com.ruben.bblib.api.animation.keyframe.event.data.ParticleKeyframeData;
+import com.ruben.bblib.api.animation.keyframe.event.data.SoundKeyframeData;
 import com.ruben.bblib.api.molang.MolangParser;
 import com.ruben.bblib.api.molang.MolangVec3;
 
@@ -65,6 +69,12 @@ public final class BBAnimationParser {
             for (Map.Entry<String, JsonElement> entry : animators.entrySet()) {
                 String boneUuid = entry.getKey();
                 JsonObject animatorObj = entry.getValue().getAsJsonObject();
+                String type = animatorObj.has("type") ? animatorObj.get("type").getAsString() : "bone";
+
+                if ("effect".equalsIgnoreCase(type)) {
+                    parseEffectAnimator(animatorObj, animation);
+                    continue;
+                }
 
                 BBBoneAnimator boneAnimator = parseBoneAnimator(boneUuid, animatorObj, flipSigns);
                 if (boneAnimator != null) {
@@ -72,8 +82,176 @@ public final class BBAnimationParser {
                 }
             }
         }
+        animation.sortKeyframes();
 
         return animation;
+    }
+
+    private static void parseEffectAnimator(JsonObject animatorObj, BBAnimation animation) {
+        if (!animatorObj.has("keyframes")) {
+            return;
+        }
+
+        JsonArray keyframes = animatorObj.getAsJsonArray("keyframes");
+        for (JsonElement keyframeElement : keyframes) {
+            if (!keyframeElement.isJsonObject()) {
+                continue;
+            }
+
+            JsonObject keyframe = keyframeElement.getAsJsonObject();
+            String channel = getOptionalValueAsString(keyframe, "channel");
+
+            switch (channel.toLowerCase()) {
+                case "sound" -> parseEffectSoundKeyframe(keyframe, animation);
+                case "particle" -> parseEffectParticleKeyframe(keyframe, animation);
+                case "timeline", "instruction", "instructions", "script" ->
+                        parseEffectInstructionKeyframe(keyframe, animation);
+                default -> {
+                }
+            }
+        }
+    }
+
+    private static void parseEffectSoundKeyframe(JsonObject keyframeObj, BBAnimation animation) {
+        double time = getTime(keyframeObj);
+
+        forEachDataPoint(keyframeObj, point -> {
+            String effect = getFirstNonBlank(point, "effect", "sound");
+            if (!effect.isBlank()) {
+                animation.addSoundKeyframe(new SoundKeyframeData(time, effect));
+            }
+        });
+    }
+
+    private static void parseEffectParticleKeyframe(JsonObject keyframeObj, BBAnimation animation) {
+        double time = getTime(keyframeObj);
+
+        forEachDataPoint(keyframeObj, point -> {
+            String effect = getFirstNonBlank(point, "effect", "particle");
+            if (effect.isBlank()) {
+                return;
+            }
+
+            animation.addParticleKeyframe(new ParticleKeyframeData(
+                    time,
+                    effect,
+                    getValueAsString(point, "locator"),
+                    getFirstNonBlank(point, "script", "pre_effect_script")
+            ));
+        });
+    }
+
+    private static void parseEffectInstructionKeyframe(JsonObject keyframeObj, BBAnimation animation) {
+        List<String> instructions = new ArrayList<>();
+
+        if (keyframeObj.has("data_points")) {
+            JsonArray dataPoints = keyframeObj.getAsJsonArray("data_points");
+            for (JsonElement dataPoint : dataPoints) {
+                instructions.addAll(parseInstructions(dataPoint));
+            }
+        }
+
+        if (!instructions.isEmpty()) {
+            animation.addCustomInstructionKeyframe(new CustomInstructionKeyframeData(
+                    getTime(keyframeObj),
+                    instructions
+            ));
+        }
+    }
+
+    private static List<String> parseInstructions(JsonElement element) {
+        List<String> instructions = new ArrayList<>();
+
+        if (element == null || element.isJsonNull()) {
+            return instructions;
+        }
+
+        if (element.isJsonPrimitive()) {
+            JsonPrimitive primitive = element.getAsJsonPrimitive();
+            if (primitive.isString()) {
+                instructions.add(primitive.getAsString());
+            }
+            return instructions;
+        }
+
+        if (element.isJsonObject()) {
+            JsonObject object = element.getAsJsonObject();
+            String script = getFirstNonBlank(object, "script", "instruction", "instructions");
+            if (!script.isBlank()) {
+                instructions.add(script);
+            }
+
+            JsonElement nestedInstructions = object.get("instructions");
+            if (nestedInstructions != null && nestedInstructions.isJsonArray()) {
+                for (JsonElement instruction : nestedInstructions.getAsJsonArray()) {
+                    if (instruction.isJsonPrimitive() && instruction.getAsJsonPrimitive().isString()) {
+                        instructions.add(instruction.getAsString());
+                    }
+                }
+            }
+            return instructions;
+        }
+
+        if (element.isJsonArray()) {
+            for (JsonElement instruction : element.getAsJsonArray()) {
+                instructions.addAll(parseInstructions(instruction));
+            }
+        }
+
+        return instructions;
+    }
+
+    private static void forEachDataPoint(JsonObject keyframeObj, Consumer<JsonObject> consumer) {
+        if (!keyframeObj.has("data_points")) {
+            return;
+        }
+
+        JsonArray dataPoints = keyframeObj.getAsJsonArray("data_points");
+        for (JsonElement dataPointElement : dataPoints) {
+            if (dataPointElement.isJsonObject()) {
+                consumer.accept(dataPointElement.getAsJsonObject());
+            }
+        }
+    }
+
+    private static double getTime(JsonObject keyframeObj) {
+        if (!keyframeObj.has("time")) {
+            return 0;
+        }
+
+        try {
+            return keyframeObj.get("time").getAsDouble();
+        } catch (Exception ignored) {
+            return 0;
+        }
+    }
+
+    private static String getFirstNonBlank(JsonObject obj, String... keys) {
+        for (String key : keys) {
+            String value = getOptionalValueAsString(obj, key);
+            if (!value.isBlank()) {
+                return value;
+            }
+        }
+
+        return "";
+    }
+
+    private static String getOptionalValueAsString(JsonObject obj, String key) {
+        if (!obj.has(key)) {
+            return "";
+        }
+
+        JsonElement element = obj.get(key);
+        if (element.isJsonPrimitive()) {
+            if (element.getAsJsonPrimitive().isNumber()) {
+                return String.valueOf(element.getAsFloat());
+            } else if (element.getAsJsonPrimitive().isString()) {
+                return element.getAsString();
+            }
+        }
+
+        return "";
     }
 
     private static BBBoneAnimator parseBoneAnimator(String boneUuid, JsonObject animatorObj, boolean flipSigns) {
@@ -191,5 +369,6 @@ public final class BBAnimationParser {
             return 0;
         }
     }
+
 }
 
