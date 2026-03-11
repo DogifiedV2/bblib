@@ -3,7 +3,7 @@ package com.ruben.bblib.example;
 import com.ruben.bblib.api.BBLibApi;
 import com.ruben.bblib.api.animatable.AnimatableInstanceCache;
 import com.ruben.bblib.api.animatable.AnimationController;
-import com.ruben.bblib.api.animatable.BBAnimatable;
+import com.ruben.bblib.api.animatable.BBEntityAnimatable;
 import com.ruben.bblib.api.animatable.ControllerRegistrar;
 import com.ruben.bblib.api.animatable.RawAnimation;
 import net.minecraft.core.particles.DustParticleOptions;
@@ -39,7 +39,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-public class PumpkinBossTestEntity extends Monster implements BBAnimatable {
+public class PumpkinBossTestEntity extends Monster implements BBEntityAnimatable {
     public static final int MELEE_ATTACK_DURATION = 36;
     public static final int SEED_ATTACK_DURATION = 80;
     public static final int SEED_RELEASE_TICK = 66;
@@ -216,11 +216,6 @@ public class PumpkinBossTestEntity extends Monster implements BBAnimatable {
     @Override
     public AnimatableInstanceCache getAnimatableInstanceCache() {
         return this.cache;
-    }
-
-    @Override
-    public double getTick(Object object) {
-        return this.tickCount;
     }
 
     public void applySeedCurse(ServerLevel level, LivingEntity target) {

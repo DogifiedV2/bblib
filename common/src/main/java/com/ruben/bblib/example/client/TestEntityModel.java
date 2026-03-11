@@ -13,10 +13,5 @@ public class TestEntityModel extends BBModel<TestEntity> {
     public ResourceLocation getModelResource(TestEntity entity) {
         return ResourceLocation.fromNamespaceAndPath("bblib", "test_entity");
     }
-
-    @Override
-    public ResourceLocation getTextureResource(TestEntity entity) {
-        return getDefaultTexture(entity);
-    }
 }
 

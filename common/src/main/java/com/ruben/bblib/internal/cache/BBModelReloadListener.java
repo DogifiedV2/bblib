@@ -2,7 +2,7 @@ package com.ruben.bblib.internal.cache;
 
 import com.ruben.bblib.internal.BBLibCommon;
 import com.ruben.bblib.internal.client.texture.BBTextureManager;
-import com.ruben.bblib.api.model.ModelData;
+import com.ruben.bblib.api.model.data.ModelData;
 import com.ruben.bblib.internal.parser.BBModelParser;
 import com.ruben.bblib.internal.parser.ParseResult;
 import net.fabricmc.api.EnvType;

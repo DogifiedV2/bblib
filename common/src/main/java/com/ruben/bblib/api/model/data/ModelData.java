@@ -1,4 +1,4 @@
-package com.ruben.bblib.api.model;
+package com.ruben.bblib.api.model.data;
 
 import com.ruben.bblib.api.animation.BBAnimation;
 

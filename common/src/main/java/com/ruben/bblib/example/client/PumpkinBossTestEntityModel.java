@@ -13,10 +13,5 @@ public class PumpkinBossTestEntityModel extends BBModel<PumpkinBossTestEntity> {
     public ResourceLocation getModelResource(PumpkinBossTestEntity entity) {
         return ResourceLocation.fromNamespaceAndPath("bblib", "pumpkin_boss");
     }
-
-    @Override
-    public ResourceLocation getTextureResource(PumpkinBossTestEntity entity) {
-        return getDefaultTexture(entity);
-    }
 }
 

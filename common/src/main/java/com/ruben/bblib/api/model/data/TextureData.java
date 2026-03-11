@@ -1,4 +1,4 @@
-package com.ruben.bblib.api.model;
+package com.ruben.bblib.api.model.data;
 
 public record TextureData(
         String id,

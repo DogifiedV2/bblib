@@ -13,9 +13,4 @@ public class PumpkinSeedProjectileModel extends BBModel<PumpkinSeedProjectileEnt
     public ResourceLocation getModelResource(PumpkinSeedProjectileEntity entity) {
         return ResourceLocation.fromNamespaceAndPath("bblib", "pumpkin_seed");
     }
-
-    @Override
-    public ResourceLocation getTextureResource(PumpkinSeedProjectileEntity entity) {
-        return getDefaultTexture(entity);
-    }
 }

@@ -39,6 +39,13 @@ public class MolangContext {
         return entityContext;
     }
 
+    public MolangContext copy() {
+        return new MolangContext()
+                .withAnimTime(animTime)
+                .withPartialTick(partialTick)
+                .withEntityContext(entityContext);
+    }
+
     public double getHealth() {
         return entityContext.getHealth();
     }

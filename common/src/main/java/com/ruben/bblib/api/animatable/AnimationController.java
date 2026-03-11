@@ -2,10 +2,9 @@ package com.ruben.bblib.api.animatable;
 
 import com.ruben.bblib.api.animation.BBAnimation;
 import com.ruben.bblib.api.animation.BBBoneAnimator;
-import com.ruben.bblib.api.model.ModelData;
-import com.ruben.bblib.api.model.Vec3f;
+import com.ruben.bblib.api.model.data.ModelData;
+import com.ruben.bblib.api.model.data.Vec3f;
 import com.ruben.bblib.api.molang.MolangContext;
-import com.ruben.bblib.internal.animatable.BoneSnapshot;
 
 import java.util.HashMap;
 import java.util.List;
@@ -34,6 +33,7 @@ public class AnimationController<T extends BBAnimatable> {
     private final Map<String, BoneSnapshot> boneSnapshots = new HashMap<>();
 
     private float animationSpeed = 1.0f;
+    private float currentAnimationTick;
 
     public AnimationController(T animatable, String name, int transitionLengthTicks, AnimationPredicate<T> predicate) {
         this.animatable = animatable;
@@ -88,6 +88,7 @@ public class AnimationController<T extends BBAnimatable> {
         animationRunning = false;
         animationStartTick = 0;
         isTransitioning = false;
+        currentAnimationTick = 0;
         boneSnapshots.clear();
     }
 
@@ -102,6 +103,7 @@ public class AnimationController<T extends BBAnimatable> {
                 animationRunning = false;
                 currentAnimation = null;
             }
+            currentAnimationTick = 0;
             return;
         }
 
@@ -160,11 +162,12 @@ public class AnimationController<T extends BBAnimatable> {
                 }
             }
         }
+
+        currentAnimationTick = (float) state.animationTick;
     }
 
     public BoneAnimationResult computeBoneAnimation(String boneName, String boneUuid,
-                                                     float animationTime, MolangContext molangContext,
-                                                     double currentTick) {
+                                                     MolangContext molangContext, double currentTick) {
         if (currentAnimation == null) {
             BoneSnapshot snapshot = boneSnapshots.get(boneName);
             if (snapshot != null) {
@@ -177,11 +180,12 @@ public class AnimationController<T extends BBAnimatable> {
         Vec3f animRotation = null;
         Vec3f animPosition = null;
         Vec3f animScale = null;
+        MolangContext controllerContext = molangContext.copy().withAnimTime(currentAnimationTick);
 
         if (boneAnimator != null) {
-            animRotation = boneAnimator.getRotationAt(animationTime, molangContext);
-            animPosition = boneAnimator.getPositionAt(animationTime, molangContext);
-            animScale = boneAnimator.getScaleAt(animationTime, molangContext);
+            animRotation = boneAnimator.getRotationAt(currentAnimationTick, controllerContext);
+            animPosition = boneAnimator.getPositionAt(currentAnimationTick, controllerContext);
+            animScale = boneAnimator.getScaleAt(currentAnimationTick, controllerContext);
         }
 
         if (isTransitioning && transitionLengthTicks > 0) {
@@ -225,6 +229,28 @@ public class AnimationController<T extends BBAnimatable> {
     }
 
     public record BoneAnimationResult(Vec3f rotation, Vec3f position, Vec3f scale, boolean isBlended) {
+    }
+
+    private record BoneSnapshot(Vec3f rotation, Vec3f position, Vec3f scale) {
+        private static BoneSnapshot identity() {
+            return new BoneSnapshot(Vec3f.ZERO, Vec3f.ZERO, Vec3f.ONE);
+        }
+
+        private BoneSnapshot lerp(BoneSnapshot target, float progress) {
+            return new BoneSnapshot(
+                    lerpVec(rotation, target.rotation, progress),
+                    lerpVec(position, target.position, progress),
+                    lerpVec(scale, target.scale, progress)
+            );
+        }
+
+        private static Vec3f lerpVec(Vec3f from, Vec3f to, float progress) {
+            return new Vec3f(
+                    from.x() + (to.x() - from.x()) * progress,
+                    from.y() + (to.y() - from.y()) * progress,
+                    from.z() + (to.z() - from.z()) * progress
+            );
+        }
     }
 }
 

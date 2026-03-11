@@ -1,6 +1,6 @@
 package com.ruben.bblib.internal.parser;
 
-import com.ruben.bblib.api.model.ModelData;
+import com.ruben.bblib.api.model.data.ModelData;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;

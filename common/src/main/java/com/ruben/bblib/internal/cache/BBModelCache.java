@@ -1,6 +1,6 @@
 package com.ruben.bblib.internal.cache;
 
-import com.ruben.bblib.api.model.ModelData;
+import com.ruben.bblib.api.model.data.ModelData;
 import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 

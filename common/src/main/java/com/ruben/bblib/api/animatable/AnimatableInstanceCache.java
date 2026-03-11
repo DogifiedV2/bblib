@@ -1,8 +1,5 @@
 package com.ruben.bblib.api.animatable;
 
-import com.ruben.bblib.internal.animatable.AnimatableManager;
-
-import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -10,7 +7,7 @@ public class AnimatableInstanceCache {
 
     private final BBAnimatable animatable;
     private final ConcurrentHashMap<Long, AnimatableManager<?>> managers = new ConcurrentHashMap<>();
-    private final Set<String> hiddenBones = new HashSet<>();
+    private final Set<String> hiddenBones = ConcurrentHashMap.newKeySet();
 
     public AnimatableInstanceCache(BBAnimatable animatable) {
         this.animatable = animatable;
@@ -33,7 +30,7 @@ public class AnimatableInstanceCache {
         return hiddenBones.contains(boneName);
     }
 
-    public Set<String> getHiddenBones() {
+    Set<String> getHiddenBones() {
         return hiddenBones;
     }
 }

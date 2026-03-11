@@ -1,4 +1,7 @@
-package com.ruben.bblib.api.model;
+package com.ruben.bblib.internal.renderer;
+
+import com.ruben.bblib.api.model.data.CubeData;
+import com.ruben.bblib.api.model.data.UV;
 
 public final class FaceUvUtil {
 

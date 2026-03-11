@@ -2,7 +2,7 @@ package com.ruben.bblib.internal.client.texture;
 
 import com.mojang.blaze3d.platform.NativeImage;
 import com.ruben.bblib.internal.BBLibCommon;
-import com.ruben.bblib.api.model.TextureData;
+import com.ruben.bblib.api.model.data.TextureData;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.Minecraft;

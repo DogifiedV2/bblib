@@ -1,8 +1,4 @@
-package com.ruben.bblib.internal.animatable;
-
-import com.ruben.bblib.api.animatable.AnimationController;
-import com.ruben.bblib.api.animatable.BBAnimatable;
-import com.ruben.bblib.api.animatable.ControllerRegistrar;
+package com.ruben.bblib.api.animatable;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -53,4 +49,3 @@ public class AnimatableManager<T extends BBAnimatable> {
         this.isFirstTick = false;
     }
 }
-

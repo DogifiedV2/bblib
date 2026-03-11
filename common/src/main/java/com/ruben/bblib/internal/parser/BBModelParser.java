@@ -7,7 +7,13 @@ import com.google.gson.JsonParser;
 import com.ruben.bblib.internal.BBLibCommon;
 import com.ruben.bblib.api.animation.BBAnimation;
 import com.ruben.bblib.api.animation.BBAnimationParser;
-import com.ruben.bblib.api.model.*;
+import com.ruben.bblib.api.model.data.BoneData;
+import com.ruben.bblib.api.model.data.CubeData;
+import com.ruben.bblib.api.model.data.FaceData;
+import com.ruben.bblib.api.model.data.ModelData;
+import com.ruben.bblib.api.model.data.TextureData;
+import com.ruben.bblib.api.model.data.UV;
+import com.ruben.bblib.api.model.data.Vec3f;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -74,7 +80,7 @@ public final class BBModelParser {
             rootBones = parseLegacyOutliner(outlinerArray, animatableElements);
         }
 
-        List<BBAnimation> animations = BBAnimationParser.parseAnimations(root.getAsJsonArray("animations"), flipAnimationSigns, result);
+        List<BBAnimation> animations = BBAnimationParser.parseAnimations(root.getAsJsonArray("animations"), flipAnimationSigns, result::warn);
 
         if (!animations.isEmpty()) {
             BBLibCommon.LOGGER.info("Loaded {} animations for model {} (format: v{}, {})",

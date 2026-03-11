@@ -1,9 +1,9 @@
 package com.ruben.bblib.api.util;
 
-import com.ruben.bblib.api.model.BoneData;
-import com.ruben.bblib.api.model.CubeData;
-import com.ruben.bblib.api.model.ModelData;
-import com.ruben.bblib.api.model.Vec3f;
+import com.ruben.bblib.api.model.data.BoneData;
+import com.ruben.bblib.api.model.data.CubeData;
+import com.ruben.bblib.api.model.data.ModelData;
+import com.ruben.bblib.api.model.data.Vec3f;
 
 import java.util.Map;
 

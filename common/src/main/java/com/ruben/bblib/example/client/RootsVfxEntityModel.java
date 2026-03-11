@@ -13,9 +13,4 @@ public class RootsVfxEntityModel extends BBModel<RootsVfxEntity> {
     public ResourceLocation getModelResource(RootsVfxEntity entity) {
         return ResourceLocation.fromNamespaceAndPath("bblib", "roots_vfx");
     }
-
-    @Override
-    public ResourceLocation getTextureResource(RootsVfxEntity entity) {
-        return getDefaultTexture(entity);
-    }
 }

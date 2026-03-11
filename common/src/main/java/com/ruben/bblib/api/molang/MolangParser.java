@@ -1,9 +1,8 @@
 package com.ruben.bblib.api.molang;
 
-import com.ruben.bblib.internal.BBLibCommon;
-
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -11,6 +10,7 @@ public final class MolangParser {
 
     private static final Pattern NUMBER_PATTERN = Pattern.compile("^-?\\d+(\\.\\d+)?");
     private static final Pattern IDENTIFIER_PATTERN = Pattern.compile("^[a-zA-Z_][a-zA-Z0-9_.]*");
+    private static final Logger LOGGER = Logger.getLogger(MolangParser.class.getName());
 
     private MolangParser() {
     }
@@ -25,7 +25,7 @@ public final class MolangParser {
         try {
             return parseExpression(new ParseState(expression));
         } catch (Exception e) {
-            BBLibCommon.LOGGER.warn("Failed to parse Molang expression '{}': {}", expression, e.getMessage());
+            LOGGER.warning("Failed to parse Molang expression '" + expression + "': " + e.getMessage());
             return ctx -> 0;
         }
     }
@@ -326,7 +326,7 @@ public final class MolangParser {
                 yield ctx -> Math.toRadians(arg.evaluate(ctx));
             }
             default -> {
-                BBLibCommon.LOGGER.debug("Unknown Molang function: {}", name);
+                LOGGER.fine("Unknown Molang function: " + name);
                 yield ctx -> 0;
             }
         };
@@ -351,7 +351,7 @@ public final class MolangParser {
             case "pi" -> ctx -> Math.PI;
             case "e" -> ctx -> Math.E;
             default -> {
-                BBLibCommon.LOGGER.debug("Unknown Molang variable: {}", name);
+                LOGGER.fine("Unknown Molang variable: " + name);
                 yield ctx -> 0;
             }
         };

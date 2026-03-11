@@ -5,11 +5,11 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.ruben.bblib.api.molang.MolangParser;
 import com.ruben.bblib.api.molang.MolangVec3;
-import com.ruben.bblib.internal.parser.ParseResult;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 public final class BBAnimationParser {
 
@@ -17,10 +17,11 @@ public final class BBAnimationParser {
     }
 
     public static List<BBAnimation> parseAnimations(JsonArray animationsArray, boolean flipSigns) {
-        return parseAnimations(animationsArray, flipSigns, new ParseResult("animations"));
+        return parseAnimations(animationsArray, flipSigns, warning -> {
+        });
     }
 
-    public static List<BBAnimation> parseAnimations(JsonArray animationsArray, boolean flipSigns, ParseResult result) {
+    public static List<BBAnimation> parseAnimations(JsonArray animationsArray, boolean flipSigns, Consumer<String> warningConsumer) {
         List<BBAnimation> animations = new ArrayList<>();
 
         if (animationsArray == null) {
@@ -41,7 +42,7 @@ public final class BBAnimationParser {
                     animations.add(animation);
                 }
             } catch (Exception e) {
-                result.warn("Failed to parse animation '" + animName + "': " + e.getMessage());
+                warningConsumer.accept("Failed to parse animation '" + animName + "': " + e.getMessage());
             }
         }
 

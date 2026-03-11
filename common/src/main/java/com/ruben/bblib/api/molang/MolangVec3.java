@@ -1,6 +1,6 @@
 package com.ruben.bblib.api.molang;
 
-import com.ruben.bblib.api.model.Vec3f;
+import com.ruben.bblib.api.model.data.Vec3f;
 
 public class MolangVec3 {
 
