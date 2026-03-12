@@ -1,10 +1,11 @@
 package com.ruben.bblib.example;
 
 import com.ruben.bblib.api.BBLibApi;
+import com.ruben.bblib.api.animatable.AnimationController;
 import com.ruben.bblib.api.animatable.AnimatableInstanceCache;
 import com.ruben.bblib.api.animatable.BBEntityAnimatable;
 import com.ruben.bblib.api.animatable.ControllerRegistrar;
-import com.ruben.bblib.api.animatable.DefaultAnimations;
+import com.ruben.bblib.api.animatable.RawAnimation;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.PathfinderMob;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
@@ -12,6 +13,8 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.level.Level;
 
 public class TestEntity extends PathfinderMob implements BBEntityAnimatable {
+
+    private static final RawAnimation TEST = RawAnimation.begin().thenLoop("test");
 
     private final AnimatableInstanceCache cache = BBLibApi.createCache(this);
 
@@ -27,8 +30,7 @@ public class TestEntity extends PathfinderMob implements BBEntityAnimatable {
 
     @Override
     public void registerControllers(ControllerRegistrar controllers) {
-        controllers.add(DefaultAnimations.genericWalkIdleController(this, "main", 5,
-                DefaultAnimations.WALK, DefaultAnimations.IDLE));
+        controllers.add(new AnimationController<>(this, "main", 0, state -> state.setAndContinue(TEST)));
     }
 
     @Override

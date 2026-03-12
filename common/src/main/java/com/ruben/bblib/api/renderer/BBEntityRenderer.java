@@ -24,7 +24,9 @@ import com.ruben.bblib.api.model.data.ModelData;
 import com.ruben.bblib.api.model.data.TextureData;
 import com.ruben.bblib.api.model.data.UV;
 import com.ruben.bblib.api.model.data.Vec3f;
+import com.ruben.bblib.api.model.transform.ResolvedNodeTransform;
 import com.ruben.bblib.internal.client.texture.MissingModelTexture;
+import com.ruben.bblib.internal.model.transform.BBModelTransformResolver;
 import com.ruben.bblib.internal.renderer.BBRenderType;
 import com.ruben.bblib.api.molang.EntityContext;
 import com.ruben.bblib.api.molang.MolangContext;
@@ -68,6 +70,26 @@ public class BBEntityRenderer<T extends Entity & BBAnimatable> extends EntityRen
 
     public BBModel<T> getModel() {
         return model;
+    }
+
+    @Nullable
+    public ResolvedNodeTransform getLocatorTransform(T entity, ModelData modelData, String locatorName,
+                                                     AnimatableManager<T> manager, MolangContext molangContext,
+                                                     double currentTick, float partialTick,
+                                                     @Nullable BoneRenderStateMap boneRenderStates) {
+        return BBModelTransformResolver.resolveLocatorTransform(
+                entity, modelData, locatorName, manager, molangContext, currentTick, partialTick, boneRenderStates
+        );
+    }
+
+    @Nullable
+    public ResolvedNodeTransform getBoneTransform(T entity, ModelData modelData, String boneName,
+                                                  AnimatableManager<T> manager, MolangContext molangContext,
+                                                  double currentTick, float partialTick,
+                                                  @Nullable BoneRenderStateMap boneRenderStates) {
+        return BBModelTransformResolver.resolveBoneTransform(
+                entity, modelData, boneName, manager, molangContext, currentTick, partialTick, boneRenderStates
+        );
     }
 
     protected final void addRenderLayer(BBRenderLayer<T> renderLayer) {

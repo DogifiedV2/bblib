@@ -3,6 +3,7 @@ package com.ruben.bblib.api.animation.keyframe.event.builtin;
 import com.ruben.bblib.api.animatable.AnimationController;
 import com.ruben.bblib.api.animatable.BBAnimatable;
 import com.ruben.bblib.api.animation.keyframe.event.ParticleKeyframeEvent;
+import com.ruben.bblib.api.model.transform.ResolvedNodeTransform;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.Minecraft;
@@ -33,7 +34,7 @@ public class AutoPlayingParticleKeyframeHandler<T extends BBAnimatable>
             return;
         }
 
-        Vec3 position = getParticlePosition(entity);
+        Vec3 position = getParticlePosition(event, entity);
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.level != null) {
             minecraft.level.addParticle(particle, position.x, position.y, position.z, 0, 0, 0);
@@ -68,5 +69,15 @@ public class AutoPlayingParticleKeyframeHandler<T extends BBAnimatable>
                 entity.getY() + entity.getBbHeight() * 0.5 + (Math.random() - 0.5) * 0.5,
                 entity.getZ() + (Math.random() - 0.5) * 0.5
         );
+    }
+
+    private Vec3 getParticlePosition(ParticleKeyframeEvent<T> event, Entity entity) {
+        String locatorName = event.getKeyframeData().locator();
+        if (locatorName == null || locatorName.isBlank()) {
+            return getParticlePosition(entity);
+        }
+
+        ResolvedNodeTransform locatorTransform = event.getLocatorTransform(locatorName);
+        return locatorTransform != null ? locatorTransform.worldPosition() : getParticlePosition(entity);
     }
 }

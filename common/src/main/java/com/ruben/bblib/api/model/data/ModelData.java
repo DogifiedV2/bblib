@@ -1,6 +1,7 @@
 package com.ruben.bblib.api.model.data;
 
 import com.ruben.bblib.api.animation.BBAnimation;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,6 +14,9 @@ public record ModelData(
         int textureHeight,
         Map<String, CubeData> cubes,
         List<BoneData> rootBones,
+        List<LocatorData> locators,
+        Map<String, LocatorData> locatorsByUuid,
+        Map<String, LocatorData> locatorsByName,
         List<TextureData> textures,
         List<BBAnimation> animations,
         boolean freeFormat
@@ -21,7 +25,8 @@ public record ModelData(
     public ModelData(String id, String name, int textureWidth, int textureHeight,
                      Map<String, CubeData> cubes, List<BoneData> rootBones,
                      List<TextureData> textures) {
-        this(id, name, textureWidth, textureHeight, cubes, rootBones, textures, new ArrayList<>(), false);
+        this(id, name, textureWidth, textureHeight, cubes, rootBones,
+                new ArrayList<>(), Map.of(), Map.of(), textures, new ArrayList<>(), false);
     }
 
     public BBAnimation getAnimation(String name) {
@@ -35,6 +40,20 @@ public record ModelData(
 
     public List<String> getAnimationNames() {
         return animations.stream().map(BBAnimation::getName).toList();
+    }
+
+    @Nullable
+    public LocatorData getLocator(String name) {
+        return locatorsByName.get(name);
+    }
+
+    @Nullable
+    public LocatorData getLocatorByUuid(String uuid) {
+        return locatorsByUuid.get(uuid);
+    }
+
+    public boolean hasLocator(String name) {
+        return locatorsByName.containsKey(name);
     }
 
     public int findGlowmaskTextureIndex(int baseTextureIndex) {
