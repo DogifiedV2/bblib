@@ -17,6 +17,7 @@ import com.ruben.bblib.api.animatable.data.EntityRenderData;
 import com.ruben.bblib.api.model.BBModel;
 import com.ruben.bblib.api.model.animation.BoneRenderState;
 import com.ruben.bblib.api.model.animation.BoneRenderStateMap;
+import com.ruben.bblib.api.model.data.BillboardData;
 import com.ruben.bblib.api.model.data.BoneData;
 import com.ruben.bblib.api.model.data.CubeData;
 import com.ruben.bblib.api.model.data.FaceData;
@@ -36,6 +37,7 @@ import com.ruben.bblib.api.renderer.layer.BBRenderLayersContainer;
 import com.ruben.bblib.internal.renderer.FaceUvUtil;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
@@ -51,6 +53,8 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Pose;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Matrix4f;
+import org.joml.Vector4f;
 
 import java.util.List;
 import java.util.Map;
@@ -568,8 +572,7 @@ public class BBEntityRenderer<T extends Entity & BBAnimatable> extends EntityRen
                     fireLayerCallbacks);
         }
 
-        int glowmaskIndex = modelData.findGlowmaskTextureIndex(0);
-        if (glowmaskIndex < 0) {
+        if (!hasAnyGlowmaskTexture(modelData)) {
             return;
         }
 
@@ -602,14 +605,22 @@ public class BBEntityRenderer<T extends Entity & BBAnimatable> extends EntityRen
         }
 
         Map<String, CubeData> cubes = modelData.cubes();
-        List<TextureData> textures = modelData.textures();
+        Map<String, BillboardData> billboards = modelData.billboards();
         float texWidth = modelData.textureWidth();
         float texHeight = modelData.textureHeight();
 
         for (String cubeUuid : bone.cubeUuids()) {
             CubeData cube = cubes.get(cubeUuid);
             if (cube != null) {
-                renderCubeFree(renderModel, entity, modelData, cube, modelId, textures, poseStack, bufferSource,
+                renderCubeFree(renderModel, entity, modelData, cube, modelId, poseStack, bufferSource,
+                        packedLight, packedOverlay, texWidth, texHeight, emissivePass);
+            }
+        }
+
+        for (String billboardUuid : bone.billboardUuids()) {
+            BillboardData billboard = billboards.get(billboardUuid);
+            if (billboard != null) {
+                renderBillboardFree(renderModel, entity, modelData, billboard, modelId, poseStack, bufferSource,
                         packedLight, packedOverlay, texWidth, texHeight, emissivePass);
             }
         }
@@ -628,7 +639,8 @@ public class BBEntityRenderer<T extends Entity & BBAnimatable> extends EntityRen
         poseStack.popPose();
     }
 
-    private void renderCubeFree(BBModel<T> renderModel, T entity, ModelData modelData, CubeData cube, ResourceLocation modelId, List<TextureData> textures,
+    private void renderCubeFree(BBModel<T> renderModel, T entity, ModelData modelData, CubeData cube,
+                                ResourceLocation modelId,
                                  PoseStack poseStack, MultiBufferSource bufferSource,
                                  int packedLight, int packedOverlay, float defaultTexWidth, float defaultTexHeight,
                                  boolean emissivePass) {
@@ -666,78 +678,73 @@ public class BBEntityRenderer<T extends Entity & BBAnimatable> extends EntityRen
 
         if (zeroX) {
             if (faces.containsKey(CubeData.Face.EAST)) {
-                renderFaceFree(renderModel, entity, modelData, cube, CubeData.Face.EAST, modelId, textures, pose, bufferSource, packedLight, packedOverlay,
+                renderFaceFree(renderModel, entity, modelData, cube, CubeData.Face.EAST, modelId, pose, bufferSource, packedLight, packedOverlay,
                         defaultTexWidth, defaultTexHeight, x2, y1, z2, x2, y2, z1, 1, 0, 0, emissivePass);
             } else if (faces.containsKey(CubeData.Face.WEST)) {
-                renderFaceFree(renderModel, entity, modelData, cube, CubeData.Face.WEST, modelId, textures, pose, bufferSource, packedLight, packedOverlay,
+                renderFaceFree(renderModel, entity, modelData, cube, CubeData.Face.WEST, modelId, pose, bufferSource, packedLight, packedOverlay,
                         defaultTexWidth, defaultTexHeight, x1, y1, z1, x1, y2, z2, -1, 0, 0, emissivePass);
             }
         } else if (zeroY) {
             if (faces.containsKey(CubeData.Face.UP)) {
-                renderFaceFree(renderModel, entity, modelData, cube, CubeData.Face.UP, modelId, textures, pose, bufferSource, packedLight, packedOverlay,
+                renderFaceFree(renderModel, entity, modelData, cube, CubeData.Face.UP, modelId, pose, bufferSource, packedLight, packedOverlay,
                         defaultTexWidth, defaultTexHeight, x1, y2, z1, x2, y2, z2, 0, 1, 0, emissivePass);
             } else if (faces.containsKey(CubeData.Face.DOWN)) {
-                renderFaceFree(renderModel, entity, modelData, cube, CubeData.Face.DOWN, modelId, textures, pose, bufferSource, packedLight, packedOverlay,
+                renderFaceFree(renderModel, entity, modelData, cube, CubeData.Face.DOWN, modelId, pose, bufferSource, packedLight, packedOverlay,
                         defaultTexWidth, defaultTexHeight, x1, y1, z2, x2, y1, z1, 0, -1, 0, emissivePass);
             }
         } else if (zeroZ) {
             if (faces.containsKey(CubeData.Face.SOUTH)) {
-                renderFaceFree(renderModel, entity, modelData, cube, CubeData.Face.SOUTH, modelId, textures, pose, bufferSource, packedLight, packedOverlay,
+                renderFaceFree(renderModel, entity, modelData, cube, CubeData.Face.SOUTH, modelId, pose, bufferSource, packedLight, packedOverlay,
                         defaultTexWidth, defaultTexHeight, x1, y1, z2, x2, y2, z2, 0, 0, 1, emissivePass);
             } else if (faces.containsKey(CubeData.Face.NORTH)) {
-                renderFaceFree(renderModel, entity, modelData, cube, CubeData.Face.NORTH, modelId, textures, pose, bufferSource, packedLight, packedOverlay,
+                renderFaceFree(renderModel, entity, modelData, cube, CubeData.Face.NORTH, modelId, pose, bufferSource, packedLight, packedOverlay,
                         defaultTexWidth, defaultTexHeight, x2, y1, z1, x1, y2, z1, 0, 0, -1, emissivePass);
             }
         } else {
-            renderFaceFree(renderModel, entity, modelData, cube, CubeData.Face.NORTH, modelId, textures, pose, bufferSource, packedLight, packedOverlay,
+            renderFaceFree(renderModel, entity, modelData, cube, CubeData.Face.NORTH, modelId, pose, bufferSource, packedLight, packedOverlay,
                     defaultTexWidth, defaultTexHeight, x2, y1, z1, x1, y2, z1, 0, 0, -1, emissivePass);
-            renderFaceFree(renderModel, entity, modelData, cube, CubeData.Face.SOUTH, modelId, textures, pose, bufferSource, packedLight, packedOverlay,
+            renderFaceFree(renderModel, entity, modelData, cube, CubeData.Face.SOUTH, modelId, pose, bufferSource, packedLight, packedOverlay,
                     defaultTexWidth, defaultTexHeight, x1, y1, z2, x2, y2, z2, 0, 0, 1, emissivePass);
-            renderFaceFree(renderModel, entity, modelData, cube, CubeData.Face.EAST, modelId, textures, pose, bufferSource, packedLight, packedOverlay,
+            renderFaceFree(renderModel, entity, modelData, cube, CubeData.Face.EAST, modelId, pose, bufferSource, packedLight, packedOverlay,
                     defaultTexWidth, defaultTexHeight, x2, y1, z2, x2, y2, z1, 1, 0, 0, emissivePass);
-            renderFaceFree(renderModel, entity, modelData, cube, CubeData.Face.WEST, modelId, textures, pose, bufferSource, packedLight, packedOverlay,
+            renderFaceFree(renderModel, entity, modelData, cube, CubeData.Face.WEST, modelId, pose, bufferSource, packedLight, packedOverlay,
                     defaultTexWidth, defaultTexHeight, x1, y1, z1, x1, y2, z2, -1, 0, 0, emissivePass);
-            renderFaceFree(renderModel, entity, modelData, cube, CubeData.Face.UP, modelId, textures, pose, bufferSource, packedLight, packedOverlay,
+            renderFaceFree(renderModel, entity, modelData, cube, CubeData.Face.UP, modelId, pose, bufferSource, packedLight, packedOverlay,
                     defaultTexWidth, defaultTexHeight, x1, y2, z1, x2, y2, z2, 0, 1, 0, emissivePass);
-            renderFaceFree(renderModel, entity, modelData, cube, CubeData.Face.DOWN, modelId, textures, pose, bufferSource, packedLight, packedOverlay,
+            renderFaceFree(renderModel, entity, modelData, cube, CubeData.Face.DOWN, modelId, pose, bufferSource, packedLight, packedOverlay,
                     defaultTexWidth, defaultTexHeight, x1, y1, z2, x2, y1, z1, 0, -1, 0, emissivePass);
         }
 
         poseStack.popPose();
     }
 
-    private void renderFaceFree(BBModel<T> renderModel, T entity, ModelData modelData, CubeData cube, CubeData.Face face, ResourceLocation modelId,
-                                 List<TextureData> textures, PoseStack.Pose pose, MultiBufferSource bufferSource,
-                                 int packedLight, int packedOverlay, float defaultTexWidth, float defaultTexHeight,
-                                 float x1, float y1, float z1, float x2, float y2, float z2,
-                                 float nx, float ny, float nz, boolean emissivePass) {
+    private void renderFaceFree(BBModel<T> renderModel, T entity, ModelData modelData, CubeData cube,
+                                CubeData.Face face, ResourceLocation modelId, PoseStack.Pose pose,
+                                MultiBufferSource bufferSource, int packedLight, int packedOverlay,
+                                float defaultTexWidth, float defaultTexHeight, float x1, float y1, float z1,
+                                float x2, float y2, float z2, float nx, float ny, float nz,
+                                boolean emissivePass) {
         FaceData faceData = cube.faces().get(face);
         if (faceData == null) {
             return;
         }
 
-        if (textures.isEmpty()) {
+        ResolvedTexture resolvedTexture = resolveRenderableTexture(renderModel, entity, modelData, modelId,
+                faceData.textureIndex(), emissivePass);
+        if (resolvedTexture == null) {
             return;
         }
 
-        int textureIndex = faceData.textureIndex();
-        if (textureIndex < 0 || textureIndex >= textures.size()) {
-            textureIndex = 0;
-        }
-
-        TextureData textureData = textures.get(textureIndex);
-        ResourceLocation textureLocation = resolveTextureLocation(renderModel, entity, modelData, modelId, textureIndex, textureData);
-
         RenderType renderType;
         if (emissivePass) {
-            renderType = BBRenderType.entityTranslucentEmissive(textureLocation);
+            renderType = BBRenderType.entityTranslucentEmissive(resolvedTexture.location());
         } else {
-            renderType = BBRenderType.entityCutoutNoCull(textureLocation);
+            renderType = BBRenderType.entityCutoutNoCull(resolvedTexture.location());
         }
         VertexConsumer vertexConsumer = bufferSource.getBuffer(renderType);
 
-        float texWidth = textureData.width() > 0 ? textureData.width() : defaultTexWidth;
-        float texHeight = textureData.height() > 0 ? textureData.height() : defaultTexHeight;
+        float texWidth = resolvedTexture.textureData().width() > 0 ? resolvedTexture.textureData().width() : defaultTexWidth;
+        float texHeight = resolvedTexture.textureData().height() > 0 ? resolvedTexture.textureData().height() : defaultTexHeight;
 
         float[] uvs = FaceUvUtil.buildFaceVertexUvs(face, faceData.uv(), faceData.rotation(), texWidth, texHeight);
 
@@ -778,6 +785,93 @@ public class BBEntityRenderer<T extends Entity & BBAnimatable> extends EntityRen
                 vertex(vertexConsumer, pose, x2, y1, z1, uvs[4], uvs[5], nx, ny, nz, packedLight, packedOverlay);
                 vertex(vertexConsumer, pose, x1, y1, z1, uvs[6], uvs[7], nx, ny, nz, packedLight, packedOverlay);
             }
+        }
+    }
+
+    private void renderBillboardFree(BBModel<T> renderModel, T entity, ModelData modelData, BillboardData billboard,
+                                     ResourceLocation modelId, PoseStack poseStack, MultiBufferSource bufferSource,
+                                     int packedLight, int packedOverlay, float defaultTexWidth,
+                                     float defaultTexHeight, boolean emissivePass) {
+        if (!billboard.visible() || billboard.frontFace() == null) {
+            return;
+        }
+
+        poseStack.pushPose();
+        poseStack.translate(
+                billboard.origin().x() * PIXEL_SCALE,
+                billboard.origin().y() * PIXEL_SCALE,
+                billboard.origin().z() * PIXEL_SCALE
+        );
+
+        applyBillboardFacing(entity, poseStack, billboard);
+
+        FaceData faceData = billboard.frontFace();
+        ResolvedTexture resolvedTexture = resolveRenderableTexture(renderModel, entity, modelData, modelId,
+                faceData.textureIndex(), emissivePass);
+        if (resolvedTexture == null) {
+            poseStack.popPose();
+            return;
+        }
+
+        RenderType renderType = emissivePass
+                ? BBRenderType.entityTranslucentEmissive(resolvedTexture.location())
+                : BBRenderType.entityCutoutNoCull(resolvedTexture.location());
+        VertexConsumer vertexConsumer = bufferSource.getBuffer(renderType);
+
+        float texWidth = resolvedTexture.textureData().width() > 0 ? resolvedTexture.textureData().width() : defaultTexWidth;
+        float texHeight = resolvedTexture.textureData().height() > 0 ? resolvedTexture.textureData().height() : defaultTexHeight;
+        float[] uvs = FaceUvUtil.buildFaceVertexUvs(CubeData.Face.SOUTH, faceData.uv(), faceData.rotation(), texWidth, texHeight);
+
+        float halfWidth = billboard.size().x() * 0.5f * PIXEL_SCALE;
+        float halfHeight = billboard.size().y() * 0.5f * PIXEL_SCALE;
+        float offsetX = billboard.offset().x() * PIXEL_SCALE;
+        float offsetY = billboard.offset().y() * PIXEL_SCALE;
+        float left = offsetX - halfWidth;
+        float right = offsetX + halfWidth;
+        float bottom = offsetY - halfHeight;
+        float top = offsetY + halfHeight;
+        PoseStack.Pose pose = poseStack.last();
+
+        vertex(vertexConsumer, pose, left, bottom, 0.0f, uvs[0], uvs[1], 0.0f, 0.0f, 1.0f, packedLight, packedOverlay);
+        vertex(vertexConsumer, pose, left, top, 0.0f, uvs[2], uvs[3], 0.0f, 0.0f, 1.0f, packedLight, packedOverlay);
+        vertex(vertexConsumer, pose, right, top, 0.0f, uvs[4], uvs[5], 0.0f, 0.0f, 1.0f, packedLight, packedOverlay);
+        vertex(vertexConsumer, pose, right, bottom, 0.0f, uvs[6], uvs[7], 0.0f, 0.0f, 1.0f, packedLight, packedOverlay);
+
+        poseStack.popPose();
+    }
+
+    private void applyBillboardFacing(T entity, PoseStack poseStack, BillboardData billboard) {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.gameRenderer == null || minecraft.gameRenderer.getMainCamera() == null) {
+            return;
+        }
+
+        Vec3 cameraPosition = minecraft.gameRenderer.getMainCamera().getPosition();
+        Vec3 relativeCameraPosition = cameraPosition.subtract(entity.getX(), entity.getY(), entity.getZ());
+
+        Matrix4f inversePose = new Matrix4f(poseStack.last().pose());
+        if (Math.abs(inversePose.determinant()) < 1.0E-6f) {
+            return;
+        }
+        inversePose.invert();
+
+        Vector4f localCamera = new Vector4f(
+                (float) relativeCameraPosition.x,
+                (float) relativeCameraPosition.y,
+                (float) relativeCameraPosition.z,
+                1.0f
+        );
+        inversePose.transform(localCamera);
+
+        float horizontalDistance = Mth.sqrt(localCamera.x * localCamera.x + localCamera.z * localCamera.z);
+        float yaw = (float) Math.toDegrees(Math.atan2(localCamera.x, localCamera.z));
+        float pitch = horizontalDistance < 0.0001f
+                ? (localCamera.y >= 0 ? -90.0f : 90.0f)
+                : (float) -Math.toDegrees(Math.atan2(localCamera.y, horizontalDistance));
+
+        poseStack.mulPose(Axis.YP.rotationDegrees(yaw));
+        if (!billboard.facingMode().yOnly()) {
+            poseStack.mulPose(Axis.XP.rotationDegrees(pitch));
         }
     }
 
@@ -873,6 +967,45 @@ public class BBEntityRenderer<T extends Entity & BBAnimatable> extends EntityRen
         return BBLibApi.createEmbeddedTexture(modelId, textureIndex, textureData);
     }
 
+    @Nullable
+    private ResolvedTexture resolveRenderableTexture(BBModel<T> renderModel, T entity, ModelData modelData,
+                                                     ResourceLocation modelId, int textureIndex,
+                                                     boolean emissivePass) {
+        List<TextureData> textures = modelData.textures();
+        if (textures.isEmpty()) {
+            return null;
+        }
+
+        int resolvedTextureIndex = textureIndex;
+        if (resolvedTextureIndex < 0) {
+            return null;
+        }
+        if (resolvedTextureIndex >= textures.size()) {
+            resolvedTextureIndex = 0;
+        }
+
+        if (emissivePass) {
+            resolvedTextureIndex = modelData.findGlowmaskTextureIndex(resolvedTextureIndex);
+            if (resolvedTextureIndex < 0) {
+                return null;
+            }
+        }
+
+        TextureData textureData = textures.get(resolvedTextureIndex);
+        ResourceLocation textureLocation = resolveTextureLocation(renderModel, entity, modelData, modelId,
+                resolvedTextureIndex, textureData);
+        return new ResolvedTexture(resolvedTextureIndex, textureData, textureLocation);
+    }
+
+    private boolean hasAnyGlowmaskTexture(ModelData modelData) {
+        for (int i = 0; i < modelData.textures().size(); i++) {
+            if (modelData.findGlowmaskTextureIndex(i) >= 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private Vec3f multiplyScale(Vec3f left, Vec3f right) {
         return new Vec3f(left.x() * right.x(), left.y() * right.y(), left.z() * right.z());
     }
@@ -941,6 +1074,9 @@ public class BBEntityRenderer<T extends Entity & BBAnimatable> extends EntityRen
                 .setOverlay(packedOverlay)
                 .setLight(packedLight)
                 .setNormal(pose, nx, ny, nz);
+    }
+
+    private record ResolvedTexture(int textureIndex, TextureData textureData, ResourceLocation location) {
     }
 }
 
