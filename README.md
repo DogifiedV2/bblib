@@ -1,14 +1,10 @@
 # BBLib
 
-BBLib is a Minecraft library for rendering and animating Blockbench `.bbmodel` (FREE format) files directly in-game.
-It targets Minecraft `1.21.1`, runs on both Fabric and NeoForge, and provides a shared API for:
-
-- loading `.bbmodel` assets from resource packs
-- rendering animated entities from Blockbench models
-- driving animations through controllers and triggerable states
-- evaluating Molang queries during animation
-- attaching extra render layers and per-bone overrides
-- deriving hitbox dimensions from model data
+BBLib is a Minecraft library, inspired by Geckolib, for rendering and animating Blockbench `.bbmodel's Generic Model` files directly in-game.
+  
+This has 2 main purposes:
+- Add support for a large amount of currently unsupported models (such as MCModels.net)
+- Support latest Blockbench V5.x features everywhere
 
 
 ## Add BBLib to your project (Forge Example)
