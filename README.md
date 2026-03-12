@@ -9,7 +9,41 @@ It targets Minecraft `1.21.1`, runs on both Fabric and NeoForge, and provides a 
 - evaluating Molang queries during animation
 - attaching extra render layers and per-bone overrides
 - deriving hitbox dimensions from model data
-- 
+
+
+## Add BBLib to your project (Forge Example)
+
+### Gradle
+
+```gradle
+repositories {
+    maven { url "https://cursemaven.com" }
+}
+
+dependencies {
+    implementation fg.deobf("curse.maven:blockbenchlib-1483753:7744542")
+}
+```
+
+### Maven
+
+```xml
+<repositories>
+    <repository>
+        <id>cursemaven</id>
+        <url>https://cursemaven.com</url>
+    </repository>
+</repositories>
+
+<dependencies>
+    <dependency>
+        <groupId>curse.maven</groupId>
+        <artifactId>blockbenchlib-1483753</artifactId>
+        <version>7744542</version>
+    </dependency>
+</dependencies>
+```
+
 ## Asset Convention
 
 BBLib scans client resources for Blockbench files in:
