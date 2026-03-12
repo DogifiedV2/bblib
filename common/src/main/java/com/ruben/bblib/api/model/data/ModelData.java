@@ -13,6 +13,7 @@ public record ModelData(
         int textureWidth,
         int textureHeight,
         Map<String, CubeData> cubes,
+        Map<String, BillboardData> billboards,
         List<BoneData> rootBones,
         List<LocatorData> locators,
         Map<String, LocatorData> locatorsByUuid,
@@ -25,7 +26,7 @@ public record ModelData(
     public ModelData(String id, String name, int textureWidth, int textureHeight,
                      Map<String, CubeData> cubes, List<BoneData> rootBones,
                      List<TextureData> textures) {
-        this(id, name, textureWidth, textureHeight, cubes, rootBones,
+        this(id, name, textureWidth, textureHeight, cubes, Map.of(), rootBones,
                 new ArrayList<>(), Map.of(), Map.of(), textures, new ArrayList<>(), false);
     }
 

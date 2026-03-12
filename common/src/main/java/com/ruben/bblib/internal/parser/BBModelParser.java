@@ -7,6 +7,8 @@ import com.google.gson.JsonParser;
 import com.ruben.bblib.internal.BBLibCommon;
 import com.ruben.bblib.api.animation.BBAnimation;
 import com.ruben.bblib.api.animation.BBAnimationParser;
+import com.ruben.bblib.api.model.data.BillboardData;
+import com.ruben.bblib.api.model.data.BillboardFacingMode;
 import com.ruben.bblib.api.model.data.BoneData;
 import com.ruben.bblib.api.model.data.CubeData;
 import com.ruben.bblib.api.model.data.FaceData;
@@ -15,6 +17,7 @@ import com.ruben.bblib.api.model.data.ModelNodeKind;
 import com.ruben.bblib.api.model.data.ModelData;
 import com.ruben.bblib.api.model.data.TextureData;
 import com.ruben.bblib.api.model.data.UV;
+import com.ruben.bblib.api.model.data.Vec2f;
 import com.ruben.bblib.api.model.data.Vec3f;
 
 import java.util.*;
@@ -67,6 +70,7 @@ public final class BBModelParser {
         }
         ParsedElements parsedElements = parseElements(elementsArray, result, isFreeFormat);
         Map<String, CubeData> cubes = parsedElements.cubes();
+        Map<String, BillboardData> billboards = parsedElements.billboards();
         Map<String, AnimatableElementData> animatableElements = parsedElements.animatableElements();
 
         JsonArray outlinerArray = root.getAsJsonArray("outliner");
@@ -77,9 +81,9 @@ public final class BBModelParser {
         List<BoneData> rootBones;
         if (hasGroupsArray) {
             Map<String, JsonObject> groupMap = parseGroups(root.getAsJsonArray("groups"));
-            rootBones = parseOutliner(outlinerArray, groupMap, animatableElements);
+            rootBones = parseOutliner(outlinerArray, groupMap, animatableElements, billboards);
         } else {
-            rootBones = parseLegacyOutliner(outlinerArray, animatableElements);
+            rootBones = parseLegacyOutliner(outlinerArray, animatableElements, billboards);
         }
 
         List<BBAnimation> animations = BBAnimationParser.parseAnimations(root.getAsJsonArray("animations"), flipAnimationSigns, result::warn);
@@ -90,7 +94,7 @@ public final class BBModelParser {
                     animations.size(), modelId, formatMajorVersion, isFreeFormat ? "free" : "other");
         }
 
-        return new ModelData(modelId, name, textureWidth, textureHeight, cubes, rootBones,
+        return new ModelData(modelId, name, textureWidth, textureHeight, cubes, billboards, rootBones,
                 parsedLocators.locators(), parsedLocators.locatorsByUuid(), parsedLocators.locatorsByName(),
                 textures, animations, isFreeFormat);
     }
@@ -128,26 +132,41 @@ public final class BBModelParser {
 
     private static ParsedElements parseElements(JsonArray elements, ParseResult result, boolean isFreeFormat) {
         Map<String, CubeData> cubes = new HashMap<>();
+        Map<String, BillboardData> billboards = new HashMap<>();
         Map<String, AnimatableElementData> animatableElements = new HashMap<>();
         if (elements == null) {
-            return new ParsedElements(cubes, animatableElements);
+            return new ParsedElements(cubes, billboards, animatableElements);
         }
 
-        int skippedNonCube = 0;
+        int skippedUnsupported = 0;
         List<String> degenerateFaceCubes = new ArrayList<>();
 
         for (JsonElement element : elements) {
             JsonObject obj = element.getAsJsonObject();
             String type = obj.has("type") ? obj.get("type").getAsString() : "cube";
-            if (!"cube".equals(type)) {
-                Optional<AnimatableElementData> animatableElement = parseAnimatableElement(obj, type);
-                if (animatableElement.isPresent()) {
-                    AnimatableElementData animatable = animatableElement.get();
-                    animatableElements.put(animatable.uuid(), animatable);
-                } else {
-                    skippedNonCube++;
+            switch (type) {
+                case "cube" -> {
                 }
-                continue;
+                case "billboard" -> {
+                    Optional<BillboardData> billboard = parseBillboardElement(obj);
+                    if (billboard.isPresent()) {
+                        BillboardData billboardData = billboard.get();
+                        billboards.put(billboardData.uuid(), billboardData);
+                    } else {
+                        skippedUnsupported++;
+                    }
+                    continue;
+                }
+                default -> {
+                    Optional<AnimatableElementData> animatableElement = parseAnimatableElement(obj, type);
+                    if (animatableElement.isPresent()) {
+                        AnimatableElementData animatable = animatableElement.get();
+                        animatableElements.put(animatable.uuid(), animatable);
+                    } else {
+                        skippedUnsupported++;
+                    }
+                    continue;
+                }
             }
 
             boolean visible = !obj.has("visibility") || obj.get("visibility").getAsBoolean();
@@ -169,8 +188,8 @@ public final class BBModelParser {
             cubes.put(uuid, new CubeData(uuid, name, visible, from, to, origin, rotation, inflate, faces));
         }
 
-        if (skippedNonCube > 0) {
-            result.warn("Skipped " + skippedNonCube + " non-cube element(s)");
+        if (skippedUnsupported > 0) {
+            result.warn("Skipped " + skippedUnsupported + " unsupported element(s)");
         }
 
         if (!degenerateFaceCubes.isEmpty()) {
@@ -181,7 +200,64 @@ public final class BBModelParser {
             result.warn("Skipped " + count + " degenerate face(s) (zero-sized UV) on cubes: " + examples + suffix);
         }
 
-        return new ParsedElements(cubes, animatableElements);
+        return new ParsedElements(cubes, billboards, animatableElements);
+    }
+
+    private static Optional<BillboardData> parseBillboardElement(JsonObject element) {
+        if (!element.has("uuid")) {
+            return Optional.empty();
+        }
+
+        String uuid = element.get("uuid").getAsString();
+        String name = element.has("name") ? element.get("name").getAsString() : uuid;
+        boolean visible = !element.has("visibility") || element.get("visibility").getAsBoolean();
+        Vec3f origin = element.has("origin") ? parseVec3f(element.getAsJsonArray("origin")) : Vec3f.ZERO;
+        Vec2f size = element.has("size") ? parseVec2f(element.getAsJsonArray("size")) : new Vec2f(2.0f, 2.0f);
+        Vec2f offset = element.has("offset") ? parseVec2f(element.getAsJsonArray("offset")) : new Vec2f(0.0f, 0.0f);
+        BillboardFacingMode facingMode = BillboardFacingMode.fromSerialized(
+                element.has("facing_mode") ? element.get("facing_mode").getAsString() : null
+        );
+
+        FaceData frontFace = null;
+        JsonObject facesObj = element.getAsJsonObject("faces");
+        if (facesObj != null && facesObj.has("front")) {
+            frontFace = parseBillboardFace(facesObj.getAsJsonObject("front"));
+        }
+
+        return Optional.of(new BillboardData(uuid, name, visible, origin, size, offset, facingMode, frontFace));
+    }
+
+    private static FaceData parseBillboardFace(JsonObject faceObj) {
+        if (faceObj == null || !faceObj.has("texture") || faceObj.get("texture").isJsonNull()) {
+            return null;
+        }
+        JsonArray uvArray = faceObj.getAsJsonArray("uv");
+        UV uv = uvArray != null && uvArray.size() >= 4
+                ? new UV(
+                uvArray.get(0).getAsFloat(),
+                uvArray.get(1).getAsFloat(),
+                uvArray.get(2).getAsFloat(),
+                uvArray.get(3).getAsFloat()
+        )
+                : new UV(0, 0, 0, 0);
+        int textureIndex = parseTextureIndex(faceObj.get("texture"));
+        int rotation = faceObj.has("rotation") && !faceObj.get("rotation").isJsonNull()
+                ? faceObj.get("rotation").getAsInt()
+                : 0;
+        return textureIndex < 0 ? null : new FaceData(uv, textureIndex, rotation);
+    }
+    private static int parseTextureIndex(JsonElement textureElement) {
+        if (textureElement == null || textureElement.isJsonNull()) {
+            return -1;
+        }
+        if (textureElement.isJsonPrimitive() && textureElement.getAsJsonPrimitive().isBoolean()) {
+            return textureElement.getAsBoolean() ? 0 : -1;
+        }
+        try {
+            return textureElement.getAsInt();
+        } catch (Exception ignored) {
+            return -1;
+        }
     }
 
     private static Map<CubeData.Face, FaceData> parseFaces(JsonObject facesObj, String cubeName,
@@ -240,14 +316,16 @@ public final class BBModelParser {
         return groupMap;
     }
 
-    private static List<BoneData> parseOutliner(JsonArray outliner, Map<String, JsonObject> groupMap, Map<String, AnimatableElementData> animatableElements) {
+    private static List<BoneData> parseOutliner(JsonArray outliner, Map<String, JsonObject> groupMap,
+                                                Map<String, AnimatableElementData> animatableElements,
+                                                Map<String, BillboardData> billboards) {
         List<BoneData> bones = new ArrayList<>();
         if (outliner == null) {
             return bones;
         }
 
         for (JsonElement element : outliner) {
-            BoneData bone = parseOutlinerEntry(element, groupMap, animatableElements);
+            BoneData bone = parseOutlinerEntry(element, groupMap, animatableElements, billboards);
             if (bone != null) {
                 bones.add(bone);
             }
@@ -256,7 +334,9 @@ public final class BBModelParser {
         return bones;
     }
 
-    private static BoneData parseOutlinerEntry(JsonElement element, Map<String, JsonObject> groupMap, Map<String, AnimatableElementData> animatableElements) {
+    private static BoneData parseOutlinerEntry(JsonElement element, Map<String, JsonObject> groupMap,
+                                               Map<String, AnimatableElementData> animatableElements,
+                                               Map<String, BillboardData> billboards) {
         if (element.isJsonPrimitive()) {
             return parseAnimatablePrimitive(element, animatableElements);
         }
@@ -284,6 +364,7 @@ public final class BBModelParser {
         }
 
         List<String> cubeUuids = new ArrayList<>();
+        List<String> billboardUuids = new ArrayList<>();
         List<BoneData> children = new ArrayList<>();
 
         if (outlinerObj.has("children")) {
@@ -293,11 +374,13 @@ public final class BBModelParser {
                     BoneData animatableChild = parseAnimatablePrimitive(child, animatableElements);
                     if (animatableChild != null) {
                         children.add(animatableChild);
+                    } else if (billboards.containsKey(child.getAsString())) {
+                        billboardUuids.add(child.getAsString());
                     } else {
                         cubeUuids.add(child.getAsString());
                     }
                 } else if (child.isJsonObject()) {
-                    BoneData childBone = parseOutlinerEntry(child, groupMap, animatableElements);
+                    BoneData childBone = parseOutlinerEntry(child, groupMap, animatableElements, billboards);
                     if (childBone != null) {
                         children.add(childBone);
                     }
@@ -305,17 +388,19 @@ public final class BBModelParser {
             }
         }
 
-        return new BoneData(uuid, name, origin, rotation, cubeUuids, children, ModelNodeKind.BONE);
+        return new BoneData(uuid, name, origin, rotation, cubeUuids, billboardUuids, children, ModelNodeKind.BONE);
     }
 
-    private static List<BoneData> parseLegacyOutliner(JsonArray outliner, Map<String, AnimatableElementData> animatableElements) {
+    private static List<BoneData> parseLegacyOutliner(JsonArray outliner,
+                                                      Map<String, AnimatableElementData> animatableElements,
+                                                      Map<String, BillboardData> billboards) {
         List<BoneData> bones = new ArrayList<>();
         if (outliner == null) {
             return bones;
         }
 
         for (JsonElement element : outliner) {
-            BoneData bone = parseLegacyOutlinerEntry(element, animatableElements);
+            BoneData bone = parseLegacyOutlinerEntry(element, animatableElements, billboards);
             if (bone != null) {
                 bones.add(bone);
             }
@@ -324,7 +409,9 @@ public final class BBModelParser {
         return bones;
     }
 
-    private static BoneData parseLegacyOutlinerEntry(JsonElement element, Map<String, AnimatableElementData> animatableElements) {
+    private static BoneData parseLegacyOutlinerEntry(JsonElement element,
+                                                     Map<String, AnimatableElementData> animatableElements,
+                                                     Map<String, BillboardData> billboards) {
         if (element.isJsonPrimitive()) {
             return parseAnimatablePrimitive(element, animatableElements);
         }
@@ -340,6 +427,7 @@ public final class BBModelParser {
         Vec3f rotation = obj.has("rotation") ? parseVec3f(obj.getAsJsonArray("rotation")) : Vec3f.ZERO;
 
         List<String> cubeUuids = new ArrayList<>();
+        List<String> billboardUuids = new ArrayList<>();
         List<BoneData> children = new ArrayList<>();
 
         if (obj.has("children")) {
@@ -349,11 +437,13 @@ public final class BBModelParser {
                     BoneData animatableChild = parseAnimatablePrimitive(child, animatableElements);
                     if (animatableChild != null) {
                         children.add(animatableChild);
+                    } else if (billboards.containsKey(child.getAsString())) {
+                        billboardUuids.add(child.getAsString());
                     } else {
                         cubeUuids.add(child.getAsString());
                     }
                 } else if (child.isJsonObject()) {
-                    BoneData childBone = parseLegacyOutlinerEntry(child, animatableElements);
+                    BoneData childBone = parseLegacyOutlinerEntry(child, animatableElements, billboards);
                     if (childBone != null) {
                         children.add(childBone);
                     }
@@ -361,7 +451,7 @@ public final class BBModelParser {
             }
         }
 
-        return new BoneData(uuid, name, origin, rotation, cubeUuids, children, ModelNodeKind.BONE);
+        return new BoneData(uuid, name, origin, rotation, cubeUuids, billboardUuids, children, ModelNodeKind.BONE);
     }
 
     private static Optional<AnimatableElementData> parseAnimatableElement(JsonObject element, String type) {
@@ -402,6 +492,7 @@ public final class BBModelParser {
                 animatable.name(),
                 animatable.origin(),
                 animatable.rotation(),
+                new ArrayList<>(),
                 new ArrayList<>(),
                 new ArrayList<>(),
                 animatable.kind()
@@ -500,6 +591,16 @@ public final class BBModelParser {
         );
     }
 
+    private static Vec2f parseVec2f(JsonArray array) {
+        if (array == null || array.size() < 2) {
+            return new Vec2f(0, 0);
+        }
+        return new Vec2f(
+                array.get(0).getAsFloat(),
+                array.get(1).getAsFloat()
+        );
+    }
+
     private static boolean isSimilar(float a, float b) {
         return Math.abs(a - b) < 0.001f;
     }
@@ -515,6 +616,7 @@ public final class BBModelParser {
 
     private record ParsedElements(
             Map<String, CubeData> cubes,
+            Map<String, BillboardData> billboards,
             Map<String, AnimatableElementData> animatableElements
     ) {
     }
@@ -526,4 +628,6 @@ public final class BBModelParser {
     ) {
     }
 }
+
+
 

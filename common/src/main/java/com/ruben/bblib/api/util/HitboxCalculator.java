@@ -54,7 +54,7 @@ public final class HitboxCalculator {
     }
 
     private static void processBoneHierarchy(BoneData bone, Map<String, CubeData> cubeMap,
-                                              Transform parentTransform, BoundsAccumulator bounds) {
+                                             Transform parentTransform, BoundsAccumulator bounds) {
         Transform boneTransform = parentTransform.chain(bone.origin(), bone.rotation());
 
         for (String cubeUuid : bone.cubeUuids()) {
