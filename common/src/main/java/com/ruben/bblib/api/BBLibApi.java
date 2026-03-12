@@ -54,4 +54,9 @@ public final class BBLibApi {
     public static ResourceLocation createEmbeddedTexture(ResourceLocation modelId, int textureIndex, TextureData textureData) {
         return BBTextureManager.getInstance().getOrCreateTexture(modelId, textureIndex, textureData);
     }
+
+    public static ResourceLocation createEmbeddedTexture(ResourceLocation modelId, int textureIndex,
+                                                         TextureData textureData, TextureData.AnimationFrame animationFrame) {
+        return BBTextureManager.getInstance().getOrCreateTexture(modelId, textureIndex, textureData, animationFrame);
+    }
 }

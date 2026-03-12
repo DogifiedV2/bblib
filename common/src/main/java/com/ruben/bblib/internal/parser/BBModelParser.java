@@ -562,6 +562,12 @@ public final class BBModelParser {
             String name = obj.has("name") ? obj.get("name").getAsString() : "texture";
             int width = obj.has("width") ? obj.get("width").getAsInt() : 64;
             int height = obj.has("height") ? obj.get("height").getAsInt() : 64;
+            int uvWidth = obj.has("uv_width") ? obj.get("uv_width").getAsInt() : width;
+            int uvHeight = obj.has("uv_height") ? obj.get("uv_height").getAsInt() : height;
+            int frameTime = obj.has("frame_time") ? obj.get("frame_time").getAsInt() : 1;
+            String frameOrderType = obj.has("frame_order_type") ? obj.get("frame_order_type").getAsString() : "loop";
+            String frameOrder = obj.has("frame_order") ? obj.get("frame_order").getAsString() : "";
+            boolean frameInterpolate = obj.has("frame_interpolate") && obj.get("frame_interpolate").getAsBoolean();
 
             byte[] imageData = new byte[0];
             if (obj.has("source")) {
@@ -576,7 +582,19 @@ public final class BBModelParser {
                 result.warn("Texture '" + name + "' has no embedded image data");
             }
 
-            textureList.add(new TextureData(id, name, width, height, imageData));
+            textureList.add(new TextureData(
+                    id,
+                    name,
+                    width,
+                    height,
+                    uvWidth,
+                    uvHeight,
+                    frameTime,
+                    frameOrderType,
+                    frameOrder,
+                    frameInterpolate,
+                    imageData
+            ));
         }
 
         return textureList;
