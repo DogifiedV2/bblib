@@ -379,13 +379,16 @@ public class BBEntityRenderer<T extends Entity & BBAnimatable> extends EntityRen
         MultiBufferSource bufferSource = renderContext.getBufferSource();
         int packedLight = renderContext.getPackedLight();
         int packedOverlay = renderContext.getPackedOverlay();
-        TextureData primaryTexture = modelData.textures().get(0);
-        ResourceLocation textureLocation = resolveTextureLocation(renderModel, entity, modelData, modelId, 0, primaryTexture);
-        RenderType renderType = BBRenderType.entityCutoutNoCull(textureLocation);
+        ResolvedTexture primaryTexture = resolveRenderableTexture(renderModel, entity, modelData, modelId, 0, false);
+        if (primaryTexture == null) {
+            return;
+        }
+
+        RenderType renderType = BBRenderType.entityCutoutNoCull(primaryTexture.location());
         VertexConsumer vertexConsumer = bufferSource.getBuffer(renderType);
 
-        float texWidth = modelData.textureWidth();
-        float texHeight = modelData.textureHeight();
+        float texWidth = primaryTexture.uvWidth() > 0 ? primaryTexture.uvWidth() : modelData.textureWidth();
+        float texHeight = primaryTexture.uvHeight() > 0 ? primaryTexture.uvHeight() : modelData.textureHeight();
 
         for (BoneData bone : modelData.rootBones()) {
             renderBoneModded(renderModel, renderContext, bone, modelId, vertexConsumer,
@@ -397,15 +400,20 @@ public class BBEntityRenderer<T extends Entity & BBAnimatable> extends EntityRen
             return;
         }
 
-        TextureData glowmaskData = modelData.textures().get(glowmaskIndex);
-        ResourceLocation glowmaskLocation = resolveTextureLocation(renderModel, entity, modelData, modelId, glowmaskIndex, glowmaskData);
+        ResolvedTexture glowmaskTexture = resolveRenderableTexture(renderModel, entity, modelData, modelId, 0, true);
+        if (glowmaskTexture == null) {
+            return;
+        }
 
-        RenderType emissiveRenderType = BBRenderType.entityTranslucentEmissive(glowmaskLocation);
+        RenderType emissiveRenderType = BBRenderType.entityTranslucentEmissive(glowmaskTexture.location());
         VertexConsumer emissiveConsumer = bufferSource.getBuffer(emissiveRenderType);
+
+        float glowmaskWidth = glowmaskTexture.uvWidth() > 0 ? glowmaskTexture.uvWidth() : texWidth;
+        float glowmaskHeight = glowmaskTexture.uvHeight() > 0 ? glowmaskTexture.uvHeight() : texHeight;
 
         for (BoneData bone : modelData.rootBones()) {
             renderBoneModded(renderModel, renderContext, bone, modelId, emissiveConsumer,
-                    texWidth, texHeight, manager, animation, true,
+                    glowmaskWidth, glowmaskHeight, manager, animation, true,
                     LightTexture.FULL_BRIGHT, packedOverlay, fireLayerCallbacks);
         }
     }
@@ -741,8 +749,8 @@ public class BBEntityRenderer<T extends Entity & BBAnimatable> extends EntityRen
         }
         VertexConsumer vertexConsumer = bufferSource.getBuffer(renderType);
 
-        float texWidth = resolvedTexture.textureData().width() > 0 ? resolvedTexture.textureData().width() : defaultTexWidth;
-        float texHeight = resolvedTexture.textureData().height() > 0 ? resolvedTexture.textureData().height() : defaultTexHeight;
+        float texWidth = resolvedTexture.uvWidth() > 0 ? resolvedTexture.uvWidth() : defaultTexWidth;
+        float texHeight = resolvedTexture.uvHeight() > 0 ? resolvedTexture.uvHeight() : defaultTexHeight;
 
         float[] uvs = FaceUvUtil.buildFaceVertexUvs(face, faceData.uv(), faceData.rotation(), texWidth, texHeight);
 
@@ -816,8 +824,8 @@ public class BBEntityRenderer<T extends Entity & BBAnimatable> extends EntityRen
                 : BBRenderType.entityCutoutNoCull(resolvedTexture.location());
         VertexConsumer vertexConsumer = bufferSource.getBuffer(renderType);
 
-        float texWidth = resolvedTexture.textureData().width() > 0 ? resolvedTexture.textureData().width() : defaultTexWidth;
-        float texHeight = resolvedTexture.textureData().height() > 0 ? resolvedTexture.textureData().height() : defaultTexHeight;
+        float texWidth = resolvedTexture.uvWidth() > 0 ? resolvedTexture.uvWidth() : defaultTexWidth;
+        float texHeight = resolvedTexture.uvHeight() > 0 ? resolvedTexture.uvHeight() : defaultTexHeight;
         float[] uvs = FaceUvUtil.buildFaceVertexUvs(CubeData.Face.SOUTH, faceData.uv(), faceData.rotation(), texWidth, texHeight);
 
         float halfWidth = billboard.size().x() * 0.5f * PIXEL_SCALE;
@@ -961,6 +969,13 @@ public class BBEntityRenderer<T extends Entity & BBAnimatable> extends EntityRen
             return overrideTexture;
         }
 
+        if (textureData.isAnimated()) {
+            TextureData.AnimationFrame animationFrame = textureData.resolveAnimationFrame(
+                    getTextureAnimationTick(Minecraft.getInstance().getFrameTime())
+            );
+            return BBLibApi.createEmbeddedTexture(modelId, textureIndex, textureData, animationFrame);
+        }
+
         return BBLibApi.createEmbeddedTexture(modelId, textureIndex, textureData);
     }
 
@@ -991,7 +1006,21 @@ public class BBEntityRenderer<T extends Entity & BBAnimatable> extends EntityRen
         TextureData textureData = textures.get(resolvedTextureIndex);
         ResourceLocation textureLocation = resolveTextureLocation(renderModel, entity, modelData, modelId,
                 resolvedTextureIndex, textureData);
-        return new ResolvedTexture(resolvedTextureIndex, textureData, textureLocation);
+        return new ResolvedTexture(
+                resolvedTextureIndex,
+                textureData,
+                textureLocation,
+                textureData.uvWidthOrDefault(),
+                textureData.uvHeightOrDefault()
+        );
+    }
+
+    private double getTextureAnimationTick(float partialTick) {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.level == null) {
+            return partialTick;
+        }
+        return minecraft.level.getGameTime() + partialTick;
     }
 
     private boolean hasAnyGlowmaskTexture(ModelData modelData) {
@@ -1074,7 +1103,8 @@ public class BBEntityRenderer<T extends Entity & BBAnimatable> extends EntityRen
                 .endVertex();
     }
 
-    private record ResolvedTexture(int textureIndex, TextureData textureData, ResourceLocation location) {
+    private record ResolvedTexture(int textureIndex, TextureData textureData, ResourceLocation location,
+                                   float uvWidth, float uvHeight) {
     }
 }
 
