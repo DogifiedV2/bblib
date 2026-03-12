@@ -13,12 +13,6 @@ public final class TestEntities {
     private static final DeferredRegister<EntityType<?>> ENTITY_TYPES =
             DeferredRegister.create(BBLibCommon.MOD_ID, Registry.ENTITY_TYPE_REGISTRY);
 
-    public static final RegistrySupplier<EntityType<TestEntity>> TEST_ENTITY =
-            ENTITY_TYPES.register("test_entity", () ->
-                    EntityType.Builder.of(TestEntity::new, MobCategory.CREATURE)
-                            .sized(1.4f, 0.9f)
-                            .build("test_entity"));
-
     public static final RegistrySupplier<EntityType<PumpkinBossTestEntity>> PUMPKIN_BOSS_TEST =
             ENTITY_TYPES.register("pumpkin_boss_test", () ->
                     EntityType.Builder.of(PumpkinBossTestEntity::new, MobCategory.MONSTER)
@@ -45,7 +39,6 @@ public final class TestEntities {
 
     public static void register() {
         ENTITY_TYPES.register();
-        EntityAttributeRegistry.register(TEST_ENTITY, TestEntity::createAttributes);
         EntityAttributeRegistry.register(PUMPKIN_BOSS_TEST, PumpkinBossTestEntity::createAttributes);
     }
 }

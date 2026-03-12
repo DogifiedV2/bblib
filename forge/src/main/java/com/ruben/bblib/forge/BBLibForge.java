@@ -8,7 +8,6 @@ import com.ruben.bblib.example.client.InvisibleEntityRenderer;
 import com.ruben.bblib.example.client.PumpkinBossTestEntityRenderer;
 import com.ruben.bblib.example.client.PumpkinSeedProjectileRenderer;
 import com.ruben.bblib.example.client.RootsVfxEntityRenderer;
-import com.ruben.bblib.example.client.TestEntityRenderer;
 import dev.architectury.platform.forge.EventBuses;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.EntityRenderersEvent;
@@ -33,7 +32,6 @@ public final class BBLibForge {
 
         @SubscribeEvent
         public static void onRegisterRenderers(EntityRenderersEvent.RegisterRenderers event) {
-            event.registerEntityRenderer(TestEntities.TEST_ENTITY.get(), TestEntityRenderer::new);
             event.registerEntityRenderer(TestEntities.PUMPKIN_BOSS_TEST.get(), PumpkinBossTestEntityRenderer::new);
             event.registerEntityRenderer(TestEntities.PUMPKIN_SEED_PROJECTILE.get(), PumpkinSeedProjectileRenderer::new);
             event.registerEntityRenderer(TestEntities.ROOTS_VFX.get(), RootsVfxEntityRenderer::new);
