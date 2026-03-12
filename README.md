@@ -17,7 +17,7 @@ repositories {
 }
 
 dependencies {
-    implementation fg.deobf("curse.maven:blockbenchlib-1483753:7744542")
+    implementation fg.deobf("curse.maven:blockbenchlib-1483753:7747650")
 }
 ```
 
@@ -35,7 +35,7 @@ dependencies {
     <dependency>
         <groupId>curse.maven</groupId>
         <artifactId>blockbenchlib-1483753</artifactId>
-        <version>7744542</version>
+        <version>7747650</version>
     </dependency>
 </dependencies>
 ```
