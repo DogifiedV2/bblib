@@ -10,6 +10,8 @@ import com.ruben.bblib.api.animation.BBAnimationParser;
 import com.ruben.bblib.api.model.data.BoneData;
 import com.ruben.bblib.api.model.data.CubeData;
 import com.ruben.bblib.api.model.data.FaceData;
+import com.ruben.bblib.api.model.data.LocatorData;
+import com.ruben.bblib.api.model.data.ModelNodeKind;
 import com.ruben.bblib.api.model.data.ModelData;
 import com.ruben.bblib.api.model.data.TextureData;
 import com.ruben.bblib.api.model.data.UV;
@@ -81,13 +83,16 @@ public final class BBModelParser {
         }
 
         List<BBAnimation> animations = BBAnimationParser.parseAnimations(root.getAsJsonArray("animations"), flipAnimationSigns, result::warn);
+        ParsedLocators parsedLocators = collectLocators(rootBones, result);
 
         if (!animations.isEmpty()) {
             BBLibCommon.LOGGER.info("Loaded {} animations for model {} (format: v{}, {})",
                     animations.size(), modelId, formatMajorVersion, isFreeFormat ? "free" : "other");
         }
 
-        return new ModelData(modelId, name, textureWidth, textureHeight, cubes, rootBones, textures, animations, isFreeFormat);
+        return new ModelData(modelId, name, textureWidth, textureHeight, cubes, rootBones,
+                parsedLocators.locators(), parsedLocators.locatorsByUuid(), parsedLocators.locatorsByName(),
+                textures, animations, isFreeFormat);
     }
 
     private static int getFormatMajorVersion(JsonObject root) {
@@ -135,8 +140,13 @@ public final class BBModelParser {
             JsonObject obj = element.getAsJsonObject();
             String type = obj.has("type") ? obj.get("type").getAsString() : "cube";
             if (!"cube".equals(type)) {
-                skippedNonCube++;
-                parseAnimatableElement(obj, type).ifPresent(animatable -> animatableElements.put(animatable.uuid(), animatable));
+                Optional<AnimatableElementData> animatableElement = parseAnimatableElement(obj, type);
+                if (animatableElement.isPresent()) {
+                    AnimatableElementData animatable = animatableElement.get();
+                    animatableElements.put(animatable.uuid(), animatable);
+                } else {
+                    skippedNonCube++;
+                }
                 continue;
             }
 
@@ -295,7 +305,7 @@ public final class BBModelParser {
             }
         }
 
-        return new BoneData(uuid, name, origin, rotation, cubeUuids, children);
+        return new BoneData(uuid, name, origin, rotation, cubeUuids, children, ModelNodeKind.BONE);
     }
 
     private static List<BoneData> parseLegacyOutliner(JsonArray outliner, Map<String, AnimatableElementData> animatableElements) {
@@ -351,11 +361,12 @@ public final class BBModelParser {
             }
         }
 
-        return new BoneData(uuid, name, origin, rotation, cubeUuids, children);
+        return new BoneData(uuid, name, origin, rotation, cubeUuids, children, ModelNodeKind.BONE);
     }
 
     private static Optional<AnimatableElementData> parseAnimatableElement(JsonObject element, String type) {
-        if (!"null_object".equals(type) && !"camera".equals(type)) {
+        ModelNodeKind kind = getAnimatableKind(type);
+        if (kind == null) {
             return Optional.empty();
         }
         if (!element.has("uuid")) {
@@ -375,7 +386,7 @@ public final class BBModelParser {
         }
 
         Vec3f rotation = element.has("rotation") ? parseVec3f(element.getAsJsonArray("rotation")) : Vec3f.ZERO;
-        return Optional.of(new AnimatableElementData(uuid, name, origin, rotation));
+        return Optional.of(new AnimatableElementData(uuid, name, origin, rotation, kind));
     }
 
     private static BoneData parseAnimatablePrimitive(JsonElement element, Map<String, AnimatableElementData> animatableElements) {
@@ -392,8 +403,58 @@ public final class BBModelParser {
                 animatable.origin(),
                 animatable.rotation(),
                 new ArrayList<>(),
-                new ArrayList<>()
+                new ArrayList<>(),
+                animatable.kind()
         );
+    }
+
+    private static ModelNodeKind getAnimatableKind(String type) {
+        return switch (type) {
+            case "locator" -> ModelNodeKind.LOCATOR;
+            case "null_object" -> ModelNodeKind.NULL_OBJECT;
+            case "camera" -> ModelNodeKind.CAMERA;
+            default -> null;
+        };
+    }
+
+    private static ParsedLocators collectLocators(List<BoneData> rootBones, ParseResult result) {
+        List<LocatorData> locators = new ArrayList<>();
+        Map<String, LocatorData> locatorsByUuid = new LinkedHashMap<>();
+        Map<String, LocatorData> locatorsByName = new LinkedHashMap<>();
+
+        for (BoneData rootBone : rootBones) {
+            collectLocators(rootBone, null, locators, locatorsByUuid, locatorsByName, result);
+        }
+
+        return new ParsedLocators(locators, locatorsByUuid, locatorsByName);
+    }
+
+    private static void collectLocators(BoneData node, BoneData parent, List<LocatorData> locators,
+                                        Map<String, LocatorData> locatorsByUuid,
+                                        Map<String, LocatorData> locatorsByName,
+                                        ParseResult result) {
+        if (node.kind().isLocatorLike()) {
+            LocatorData locator = new LocatorData(
+                    node.uuid(),
+                    node.name(),
+                    node.origin(),
+                    node.rotation(),
+                    node.kind(),
+                    parent != null ? parent.uuid() : null,
+                    parent != null ? parent.name() : null
+            );
+            locators.add(locator);
+            locatorsByUuid.put(locator.uuid(), locator);
+
+            LocatorData previous = locatorsByName.putIfAbsent(locator.name(), locator);
+            if (previous != null && !previous.uuid().equals(locator.uuid())) {
+                result.warn("Duplicate locator name '" + locator.name() + "' detected; transform lookup will use the first definition");
+            }
+        }
+
+        for (BoneData child : node.children()) {
+            collectLocators(child, node, locators, locatorsByUuid, locatorsByName, result);
+        }
     }
 
     private static List<TextureData> parseTextures(JsonArray textures, ParseResult result) {
@@ -447,13 +508,21 @@ public final class BBModelParser {
             String uuid,
             String name,
             Vec3f origin,
-            Vec3f rotation
+            Vec3f rotation,
+            ModelNodeKind kind
     ) {
     }
 
     private record ParsedElements(
             Map<String, CubeData> cubes,
             Map<String, AnimatableElementData> animatableElements
+    ) {
+    }
+
+    private record ParsedLocators(
+            List<LocatorData> locators,
+            Map<String, LocatorData> locatorsByUuid,
+            Map<String, LocatorData> locatorsByName
     ) {
     }
 }

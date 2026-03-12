@@ -280,7 +280,7 @@ public class AnimationController<T extends BBAnimatable> {
         }
 
         currentAnimationTick = (float) state.animationTick;
-        dispatchKeyframeEvents(currentAnimationTick);
+        dispatchKeyframeEvents(state, currentAnimationTick);
 
         if (animationFinished) {
             currentAnimation = null;
@@ -363,7 +363,7 @@ public class AnimationController<T extends BBAnimatable> {
         triggeredAnimationName = null;
     }
 
-    private void dispatchKeyframeEvents(float animationTime) {
+    private void dispatchKeyframeEvents(AnimationState<T> state, float animationTime) {
         if (currentAnimation == null) {
             return;
         }
@@ -376,19 +376,19 @@ public class AnimationController<T extends BBAnimatable> {
 
         for (SoundKeyframeData keyframeData : keyframes.sounds()) {
             if (animationTime >= keyframeData.startTime() && executedKeyframes.add(keyframeData) && soundKeyframeHandler != null) {
-                soundKeyframeHandler.handle(new SoundKeyframeEvent<>(animatable, animationTime, this, keyframeData));
+                soundKeyframeHandler.handle(new SoundKeyframeEvent<>(animatable, animationTime, this, keyframeData, state));
             }
         }
 
         for (ParticleKeyframeData keyframeData : keyframes.particles()) {
             if (animationTime >= keyframeData.startTime() && executedKeyframes.add(keyframeData) && particleKeyframeHandler != null) {
-                particleKeyframeHandler.handle(new ParticleKeyframeEvent<>(animatable, animationTime, this, keyframeData));
+                particleKeyframeHandler.handle(new ParticleKeyframeEvent<>(animatable, animationTime, this, keyframeData, state));
             }
         }
 
         for (CustomInstructionKeyframeData keyframeData : keyframes.customInstructions()) {
             if (animationTime >= keyframeData.startTime() && executedKeyframes.add(keyframeData) && customInstructionKeyframeHandler != null) {
-                customInstructionKeyframeHandler.handle(new CustomInstructionKeyframeEvent<>(animatable, animationTime, this, keyframeData));
+                customInstructionKeyframeHandler.handle(new CustomInstructionKeyframeEvent<>(animatable, animationTime, this, keyframeData, state));
             }
         }
 

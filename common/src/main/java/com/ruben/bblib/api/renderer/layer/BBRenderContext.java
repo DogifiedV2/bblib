@@ -8,8 +8,10 @@ import com.ruben.bblib.api.model.BBModel;
 import com.ruben.bblib.api.model.animation.BoneRenderState;
 import com.ruben.bblib.api.model.animation.BoneRenderStateMap;
 import com.ruben.bblib.api.model.data.ModelData;
+import com.ruben.bblib.api.model.transform.ResolvedNodeTransform;
 import com.ruben.bblib.api.molang.MolangContext;
 import com.ruben.bblib.api.renderer.BBEntityRenderer;
+import com.ruben.bblib.internal.model.transform.BBModelTransformResolver;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.world.entity.Entity;
 import org.jetbrains.annotations.Nullable;
@@ -101,6 +103,20 @@ public final class BBRenderContext<T extends Entity & BBAnimatable> {
     @Nullable
     public BoneRenderState getBoneRenderState(String boneName) {
         return boneRenderStates.getBone(boneName);
+    }
+
+    @Nullable
+    public ResolvedNodeTransform getLocatorTransform(String locatorName) {
+        return BBModelTransformResolver.resolveLocatorTransform(
+                entity, modelData, locatorName, manager, molangContext, currentTick, partialTick, boneRenderStates
+        );
+    }
+
+    @Nullable
+    public ResolvedNodeTransform getBoneTransform(String boneName) {
+        return BBModelTransformResolver.resolveBoneTransform(
+                entity, modelData, boneName, manager, molangContext, currentTick, partialTick, boneRenderStates
+        );
     }
 
     public MolangContext getMolangContext() {

@@ -8,7 +8,13 @@ public record BoneData(
         Vec3f origin,
         Vec3f rotation,
         List<String> cubeUuids,
-        List<BoneData> children
+        List<BoneData> children,
+        ModelNodeKind kind
 ) {
+
+    public BoneData(String uuid, String name, Vec3f origin, Vec3f rotation,
+                    List<String> cubeUuids, List<BoneData> children) {
+        this(uuid, name, origin, rotation, cubeUuids, children, ModelNodeKind.BONE);
+    }
 }
 
